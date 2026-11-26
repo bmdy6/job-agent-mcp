@@ -4,7 +4,7 @@ from importlib import import_module
 
 
 def prepare_greeting(platform: str, text: str, separator: str = '；') -> str:
-    if platform not in {'boss', 'liepin', 'zhilian', '51job'}:
+    if platform not in {'boss', 'liepin', 'zhilian', '51job', 'nowcoder', 'maimai'}:
         raise ValueError('Unknown greeting platform')
     if separator not in {'；', ' '}:
         raise ValueError('Greeting newline separator must be semicolon or space')

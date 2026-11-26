@@ -23,7 +23,7 @@ class IntegrationServiceTests(unittest.TestCase):
                 'interval_seconds': 0, 'greeting_mode': 'platform_default' if p == 'zhilian' else 'send_message'}
             for p in ('boss','zhilian','liepin','51job')}}})
         self.ids = [self.db.upsert_job(platform=p, platform_job_id=p+'-1',url='https://example.com/'+p)
-                    for p in self.config.engine.platforms]
+                    for p,options in self.config.engine.platforms.items() if options.enabled]
 
     def test_full_batch_and_replay_and_unrelated_queue(self):
         self.db.add(Job('boss','outside','https://example.com/outside'))
@@ -53,7 +53,7 @@ class IntegrationServiceTests(unittest.TestCase):
     def test_registry_constructs_all_concrete_adapters_and_sources(self):
         adapters = create_adapters(object(),self.config.engine)
         self.assertEqual(set(adapters),set(self.config.engine.platforms))
-        self.assertEqual({s.platform for s in create_sources(object(),self.config.engine.monitor)},set(adapters))
+        self.assertEqual({s.platform for s in create_sources(object(),self.config.engine.monitor)},set(self.config.engine.monitor.platforms))
         self.assertTrue(all(type(s).__name__ != 'UnavailableSource' for s in create_sources(object(),self.config.engine.monitor)))
 
     def test_platform_message_uniqueness_across_jobs_and_directions(self):

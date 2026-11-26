@@ -4,7 +4,7 @@ from platforms.session import check_session
 from engine.rate import RateDeferred
 from store.automation import AutomationRepository
 
-LABELS={'boss':'BOSS','zhilian':'智联','liepin':'猎聘','51job':'51job'}
+LABELS={'boss':'BOSS','zhilian':'智联','liepin':'猎聘','51job':'51job','nowcoder':'牛客','maimai':'脉脉'}
 
 
 def telegram_alert(config,platform,reason,space_name=None):

@@ -95,6 +95,20 @@ engine:
   task_space_name: "job-agent 投递" # resolve/create by name; use a dedicated Agent-owned space
   timezone: Asia/Shanghai # calendar day for per-platform attempt budgets
   platforms:
+    maimai:
+      enabled: false # public directory only; web message/delivery entry unavailable
+      greeting_max_length: 0
+      daily_limit: 2
+      rate:
+        interval_seconds: [120, 240]
+        hourly_limit: 2
+    nowcoder:
+      enabled: false # collection only; recruitment replies/delivery pending live evidence
+      greeting_max_length: 0 # do not enable delivery before P0
+      daily_limit: 2
+      rate:
+        interval_seconds: [120, 240]
+        hourly_limit: 2
     boss:
       expected_account_type: any # student / professional only when explicitly required
       enabled: false
@@ -168,6 +182,18 @@ collect:
     company_exclude: []
     blocked_companies: []
   platforms:
+    maimai:
+      enabled: false
+      daily_page_limit: 2
+      rate:
+        interval_seconds: [120, 240]
+        hourly_limit: 2
+    nowcoder:
+      enabled: false
+      daily_page_limit: 2
+      rate:
+        interval_seconds: [120, 240]
+        hourly_limit: 2
     boss:
       enabled: false
       daily_page_limit: 20

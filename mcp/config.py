@@ -14,7 +14,7 @@ from collect.config import CollectSettings
 from daily_config import DailySettings
 from scoring_config import ScoringSettings
 
-Platform = Literal['boss', 'liepin', '51job', 'zhilian']
+Platform = Literal['boss', 'liepin', '51job', 'zhilian', 'nowcoder', 'maimai']
 
 
 class ConfigModel(BaseModel):

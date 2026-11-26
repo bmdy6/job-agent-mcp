@@ -13,7 +13,7 @@ from typing import Literal, Protocol
 
 from browser.base import Space
 
-Platform = Literal["boss", "zhilian", "liepin", "51job"]
+Platform = Literal["boss", "zhilian", "liepin", "51job", "nowcoder", "maimai"]
 Direction = Literal["incoming", "outgoing", "system"]
 
 

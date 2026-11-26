@@ -16,7 +16,7 @@ class PlatformBusy(BrowserError):
 
 @contextmanager
 def platform_lock(platform):
-    if platform not in {'boss', 'zhilian', 'liepin', '51job'}:
+    if platform not in {'boss', 'zhilian', 'liepin', '51job', 'nowcoder', 'maimai'}:
         raise ValueError('Unknown platform')
     home = Path(os.environ.get('JOB_AGENT_HOME', '~/.job-agent')).expanduser().resolve()
     home.mkdir(parents=True, exist_ok=True, mode=0o700)

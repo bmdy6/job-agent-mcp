@@ -27,7 +27,7 @@ mcp = AuditedMCP(
     ),
 )
 
-Platform = Literal["boss", "liepin", "51job", "zhilian"]
+Platform = Literal["boss", "liepin", "51job", "zhilian", "nowcoder", "maimai"]
 Platforms = Annotated[list[Platform], Field(min_length=1, max_length=4)]
 JobID = Annotated[str, Field(pattern=r"^[A-Za-z0-9:_-]{1,160}$")]
 JobIDs = Annotated[list[JobID], Field(min_length=1, max_length=100)]

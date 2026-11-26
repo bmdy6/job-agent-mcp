@@ -4,8 +4,8 @@ from typing import Literal
 from zoneinfo import ZoneInfo
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-PLATFORMS = ('boss', 'zhilian', 'liepin', '51job')
-Platform = Literal['boss', 'zhilian', 'liepin', '51job']
+PLATFORMS = ('boss', 'zhilian', 'liepin', '51job', 'nowcoder', 'maimai')
+Platform = Literal['boss', 'zhilian', 'liepin', '51job', 'nowcoder', 'maimai']
 
 
 class Model(BaseModel):
@@ -39,7 +39,22 @@ class CollectSettings(Model):
     fetch_jd: bool = False
     refresh_daily: bool = False
     filters: Filters = Field(default_factory=Filters)
-    platforms: dict[Platform, PlatformSettings] = Field(default_factory=lambda: {p: PlatformSettings() for p in PLATFORMS})
+    platforms: dict[Platform, PlatformSettings] = Field(default_factory=lambda: {p: PlatformSettings(daily_page_limit=2,rate=RatePolicy(interval_seconds=(120,240),hourly_limit=2))
+        if p in {'nowcoder','maimai'} else PlatformSettings() for p in PLATFORMS})
+
+    @model_validator(mode='before')
+    @classmethod
+    def new_platform_defaults(cls,data):
+        if not isinstance(data,dict):return data
+        data=dict(data)
+        platforms=dict(data.get('platforms',{}))
+        for name in ('nowcoder','maimai'):
+            value=platforms.get(name)
+            if isinstance(value,dict):
+                platforms[name]={'daily_page_limit':2,**value,
+                    'rate':{'interval_seconds':(120,240),'hourly_limit':2,**(value['rate'].model_dump(exclude_unset=True) if isinstance(value.get('rate'),RatePolicy) else (value.get('rate') or {}))}}
+                data['platforms']=platforms
+        return data
 
     @model_validator(mode='before')
     @classmethod

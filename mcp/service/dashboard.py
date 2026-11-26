@@ -68,6 +68,12 @@ def dated_stages(store, events, records):
     return dates
 
 
+def visible_platforms(config, funnel):
+    """Enabled platforms plus any platform that already has data; disabled empty ones stay hidden."""
+    enabled = [p for p in PLATFORMS if config.engine.platforms[p].enabled]
+    return list(dict.fromkeys([*enabled, *(g['key'] for g in funnel['groups'])]))
+
+
 def platform_states(store, config, home, now):
     runtime = read_state(home, 'monitor-runtime.json')
     state = read_state(home, 'monitor-state.json')
@@ -76,7 +82,10 @@ def platform_states(store, config, home, now):
     tables = {r[0] for r in store.connection.execute("SELECT name FROM sqlite_master WHERE type='table'")}
     pauses = store.paused_platforms() if 'platform_pauses' in tables else {}
     result = []
+    shown = set(visible_platforms(config, read_tools.funnel_from_store(store, config, 'platform', 14)))
     for platform in PLATFORMS:
+        if platform not in shown:
+            continue
         settings = config.engine.platforms[platform]
         policy = settings.rate_policy()
         history = DailyQueue.attempt_times(store, platform) if 'delivery_attempts' in tables else []
@@ -108,7 +117,7 @@ def collect(store, config, home, *, now=None):
     by_id = {j['id']: j for j in jobs}
     records = records_for(jobs, events)
     dates = dated_stages(store, events, records)
-    platforms = list(dict.fromkeys([*PLATFORMS, *(g['key'] for g in funnel['groups'])]))
+    platforms = visible_platforms(config, funnel)
     counts = Counter((when.astimezone(zone).date(), records[ident].get('platform', 'unknown'), stage)
                      for (ident, stage), when in dates.items())
     trend = [dict(date=(today-timedelta(days=n)).isoformat(), platform=p,

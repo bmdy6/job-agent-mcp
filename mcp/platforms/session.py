@@ -6,12 +6,14 @@ from dataclasses import asdict, dataclass
 from browser.base import SpaceUnavailable
 
 URLS={
+    'maimai':'https://maimai.cn/n/platform/homepage',
+    'nowcoder':'https://www.nowcoder.com/jobs/school/jobs',
     'boss':'https://www.zhipin.com/web/geek/resume',
     'zhilian':'https://i.zhaopin.com/im',
     'liepin':'https://c.liepin.com/',
     '51job':'https://www.51job.com/resume/center',
 }
-HOSTS={'boss':{'www.zhipin.com'},'zhilian':{'i.zhaopin.com'},
+HOSTS={'maimai':{'maimai.cn'},'nowcoder':{'www.nowcoder.com'},'boss':{'www.zhipin.com'},'zhilian':{'i.zhaopin.com'},
        'liepin':{'c.liepin.com'},'51job':{'www.51job.com','we.51job.com'}}
 
 # Known signed-in UI/state only; absence of a login modal is never evidence of login.
@@ -24,6 +26,8 @@ SESSION_JS=r'''(async () => { /* session.preflight */
   const login=/passport|login|signin/.test(location.hostname+location.pathname) || [...document.querySelectorAll('input[type=password],.login-dialog,.sign-form')].some(visible);
   const platform=PLATFORM;
   let logged_in=false,account_type='unknown';
+  if(platform==='maimai')logged_in=!![...document.querySelectorAll('button[aria-label^="账号菜单："]')].find(visible);
+  if(platform==='nowcoder')logged_in=!!document.querySelector('.js-nowcoder-header')?.__vue__?.userInfo?.isLogin;
   if(platform==='boss')logged_in=[...document.querySelectorAll('.nav-figure,.user-name')].some(e=>visible(e)&&!!e.textContent.trim()) || /退出登录/.test(text);
   if(platform==='zhilian')logged_in=[...document.querySelectorAll('.user-name,.userName,.user__name,.zp-user-name,.user-info__name,.c-login__top__name')].some(e=>visible(e)&&!!e.textContent.trim()&&!/登录|注册/.test(e.textContent)) || /退出登录|退出账号/.test(text);
   if(platform==='liepin') {

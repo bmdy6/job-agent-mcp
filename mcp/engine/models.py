@@ -2,8 +2,8 @@ from dataclasses import dataclass
 from enum import Enum
 from typing import Literal
 
-Platform = Literal['boss', 'zhilian', 'liepin', '51job']
-PLATFORMS = ('boss', 'zhilian', 'liepin', '51job')
+Platform = Literal['boss', 'zhilian', 'liepin', '51job', 'nowcoder', 'maimai']
+PLATFORMS = ('boss', 'zhilian', 'liepin', '51job', 'nowcoder', 'maimai')
 
 
 class Status(str, Enum):

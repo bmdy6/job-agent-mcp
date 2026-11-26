@@ -78,7 +78,7 @@ def preview(store, config, *, job_ids=None, daily=False):
                        'delivery_holds': holds, 'config_hash': batch['config_hash']}, ensure_ascii=False, indent=2)
 
 
-PLATFORM_LABELS = {'boss': 'BOSS', 'zhilian': '智联', 'liepin': '猎聘', '51job': '51job'}
+PLATFORM_LABELS = {'boss': 'BOSS', 'zhilian': '智联', 'liepin': '猎聘', '51job': '51job', 'nowcoder': '牛客', 'maimai': '脉脉'}
 STATUS_LABELS = {'sent': '成功', 'unverified': '不明', 'failed': '失败', 'skipped': '跳过', 'pending': '待续'}
 STATUS_MARKS = {'sent': '✅', 'unverified': '⚠️', 'failed': '❌', 'skipped': '⏭', 'pending': '⏸'}
 REASON_LABELS = {

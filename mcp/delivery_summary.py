@@ -2,7 +2,7 @@
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
 
-PLATFORMS = {'boss': 'BOSS', 'liepin': '猎聘', 'zhilian': '智联', '51job': '51job'}
+PLATFORMS = {'boss': 'BOSS', 'liepin': '猎聘', 'zhilian': '智联', '51job': '51job', 'nowcoder': '牛客', 'maimai': '脉脉'}
 
 
 def timestamp(value, *, history=False):

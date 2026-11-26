@@ -71,10 +71,12 @@ class EngineSettings(BaseModel):
         if not isinstance(data, dict): return data
         data = dict(data)
         platforms = dict(data.get('platforms', {}))
-        for name, limit in {'boss': 140, 'zhilian': 90}.items():
+        for name, limit in {'boss': 140, 'zhilian': 90, 'nowcoder': 2, 'maimai': 2}.items():
             value = platforms.get(name, {})
             if isinstance(value, dict):
                 platforms[name] = {'daily_limit': limit, **value}
+                if name in {'nowcoder','maimai'}:
+                    platforms[name]['rate'] = {'interval_seconds': (120,240), 'hourly_limit': 2, **(value['rate'].model_dump(exclude_unset=True) if isinstance(value.get('rate'),RatePolicy) else (value.get('rate') or {}))}
         data['platforms'] = platforms
         return data
 
@@ -90,5 +92,7 @@ class EngineSettings(BaseModel):
                              or settings.greeting_max_length > cap):
                 raise ValueError(f'{name} exceeds P0-verified limit {cap}')
         for platform in PLATFORMS:
-            self.platforms.setdefault(platform, PlatformSettings())
+            self.platforms.setdefault(platform, PlatformSettings(
+                daily_limit=2, rate=RatePolicy(interval_seconds=(120,240),hourly_limit=2))
+                if platform in {'nowcoder','maimai'} else PlatformSettings())
         return self
