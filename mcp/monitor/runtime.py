@@ -84,12 +84,13 @@ def run(*, once=False, should_stop=lambda: False):
             from service.safety import PlatformSafety
             from store.automation import AutomationRepository
             from engine.rate import RateLimiter
-            safety=PlatformSafety(browser,store,config,space_name=settings.task_space_name)
+            # Poller owns detailed alerts, including session-preflight failures.
+            safety=PlatformSafety(browser,store,config,space_name=settings.task_space_name, alert=lambda *args: None)
             monitor = Monitor(browser, create_sources(browser, settings), store, config, settings,
                               safety=safety,limiter=RateLimiter(safety.repo))
             while not should_stop():
                 result = monitor.poll_once()
-                runtime.update(last_poll_at=time.time(), result=result)
+                runtime.update(last_poll_at=time.time(), result=result, platforms=getattr(monitor, 'state', runtime.get('platforms', {})))
                 write(runtime_path, runtime)
                 if monitor.stopped:
                     runtime['state'] = 'space_unavailable'

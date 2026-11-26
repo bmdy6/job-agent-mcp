@@ -43,7 +43,7 @@ class DailyQueue:
         return False
 
     def daily_candidates(self, settings, *, cutoff, clock=None, max_per_platform=None, blocked=(),
-                         planning_exclusions=None):
+                         planning_exclusions=None, candidate_counts=None):
         from engine.models import Job
         at = time.time() if clock is None else clock
         day = datetime.fromtimestamp(at,ZoneInfo(settings.timezone)).date()
@@ -97,6 +97,9 @@ class DailyQueue:
         from engine.job_ranking import eligible_activity
         old=[j for j in old if eligible_activity(j,settings)]
         new=[j for j in new if eligible_activity(j,settings)]
+        if candidate_counts is not None:
+            from collections import Counter
+            candidate_counts.update(Counter(j["platform"] for j in old+new))
         chosen=[]
         for group in (rank_jobs(old,settings,native),rank_jobs(new,settings,native)):
             for j in group:

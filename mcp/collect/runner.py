@@ -1,4 +1,6 @@
 """Coordinate JobSource calls. Browser driver and SQLite are opaque interfaces."""
+from contextlib import ExitStack
+from browser.platform_lock import platform_lock, PlatformBusy
 import random
 import logging
 import time
@@ -52,6 +54,7 @@ class Collector:
                         return
                     yield
                     result['pages'] += cost
+                    result['last_page'] = page
                     try:
                         steps=None
                         if hasattr(source, 'search_steps'):
@@ -109,7 +112,7 @@ class Collector:
             try:
                 if not isinstance(error,RateDeferred) or code=='risk_control': self.alert(name,code)
             except Exception: stats['alert_failed']=True
-        with self.repo.exclusive() as acquired:
+        with self.repo.exclusive() as acquired, ExitStack() as locks:
             if not acquired: return {**result,'busy':True}
             try:
                 for source in self.sources:
@@ -121,14 +124,21 @@ class Collector:
                         stats['error']='risk_control_paused'
                         result['failed']+=1
                         continue
+                    budget=self.settings.timeout_seconds(name)
+                    stats["timeout_seconds"]=budget
+                    try:
+                        locks.enter_context(platform_lock(name))
+                    except PlatformBusy:
+                        stats["error"]="platform_busy"
+                        continue
                     started=time.monotonic()
                     try:
-                        with platform_deadline(self.settings.platform_timeout_seconds):
+                        with platform_deadline(budget):
                             if self.safety is not None: self.safety.require(name)
                             space=self.browser.space(self.settings.task_space_name)
                             gen=self._platform(source,space,stats)
                             next(gen)
-                            active[name]=(gen,stats,self.settings.platform_timeout_seconds-(time.monotonic()-started))
+                            active[name]=(gen,stats,budget-(time.monotonic()-started))
                     except StopIteration: pass
                     except Exception as error:
                         failed(name,stats,error)

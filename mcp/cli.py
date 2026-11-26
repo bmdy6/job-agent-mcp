@@ -27,6 +27,18 @@ def boss_get(path, port):
         connection.close()
 
 
+
+def _setup_logging(command):
+    """Rotate INFO logs under $JOB_AGENT_HOME/logs; fall back to stderr when config is unusable."""
+    from logsetup import setup_logging
+    try:
+        from config import load_config, job_agent_home
+        obs = load_config().observability
+        setup_logging(command, home=job_agent_home(), max_bytes=obs.log_max_bytes, backups=obs.log_backups)
+    except Exception:
+        setup_logging(command)
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(prog='job-agent')
     sub = parser.add_subparsers(dest='command', required=True)
@@ -51,6 +63,8 @@ def main(argv=None):
     local_review.add_argument('--job-id', type=int, required=True)
     local_review.add_argument('--record-file', required=True, help='Local JSON record obtained through the normal official UI')
     local_review.add_argument('--database', help='Owned database to open read-only')
+    heartbeat = sub.add_parser('heartbeat', help='Alert once when the monitor or daily run goes quiet; never opens a browser')
+    heartbeat.add_argument('--once', action='store_true', required=True)
     watch = sub.add_parser('watch', help='Read saved replies and delivery results; notify configured user channels')
     watch.add_argument('--once', action='store_true', help='Poll once and exit; default is every configured N minutes')
     watch.add_argument('--source', choices=('bosshunter', 'replies'), default='bosshunter')
@@ -68,7 +82,13 @@ def main(argv=None):
     deliver.add_argument('--job-ids', type=int, nargs='+', help='Owned database row IDs for preview')
     deliver.add_argument('--notify', action='store_true', help='Explicit Telegram opt-in; forbidden for dry-run')
     args = parser.parse_args(argv)
-    logging.basicConfig(level=logging.INFO)
+    _setup_logging(args.command)
+    if args.command == 'heartbeat':
+        import config as config_module
+        from service.heartbeat import run_once, notifier
+        settings = config_module.load_config()
+        print(json.dumps(run_once(settings, config_module.job_agent_home(), send=notifier(settings)), ensure_ascii=False))
+        return 0
     if args.command == 'resume-platform':
         from service.safety import resume_platform
         try:

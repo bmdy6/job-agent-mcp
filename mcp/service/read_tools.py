@@ -268,6 +268,12 @@ def setup_checks():
                                  'platforms':sessions,'verified':bool(sessions)}
     from .scoring import setup_checks as scoring_checks
     checks.update(scoring_checks())
+    from service.tasks import read
+    from config import job_agent_home
+    runtime = read(job_agent_home() / 'monitor-runtime.json') or {}
+    checks['monitor_diagnostics'] = {'ok': all(not s.get('count') for s in runtime.get('platforms', {}).values()),
+                                     'platforms': runtime.get('platforms', {}),
+                                     'last_poll_at': runtime.get('last_poll_at')}
     return checks
 
 

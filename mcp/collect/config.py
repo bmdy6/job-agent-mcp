@@ -32,7 +32,10 @@ class CollectSettings(Model):
     task_space_name: str = Field(default='job-agent 采集', min_length=1)
     timezone: str = 'Asia/Shanghai'
     interval_seconds: tuple[float, float] = (8, 15)
-    platform_timeout_seconds: float = Field(default=600, gt=0, allow_inf_nan=False)
+    platform_timeout_seconds: float | None = Field(default=None, gt=0, allow_inf_nan=False)
+    operations_per_page: int = Field(default=2, ge=1, strict=True)
+    details_per_page: int = Field(default=30, ge=0, strict=True)
+    timeout_margin_seconds: float = Field(default=120, ge=0, allow_inf_nan=False)
     fetch_jd: bool = False
     refresh_daily: bool = False
     filters: Filters = Field(default_factory=Filters)
@@ -55,6 +58,15 @@ class CollectSettings(Model):
             migrated[name]=options
         data['platforms']=migrated
         return data
+
+    def timeout_seconds(self, platform):
+        if self.platform_timeout_seconds is not None:
+            return self.platform_timeout_seconds
+        policy = self.rate_policy(platform)
+        operations = self.platforms[platform].daily_page_limit * (self.operations_per_page + (self.details_per_page if self.fetch_jd else 0))
+        average = sum(policy.interval_seconds) / 2
+        rest = operations / (sum(policy.rest_every) / 2) * (sum(policy.rest_seconds) / 2)
+        return max(1, operations * average + rest + self.timeout_margin_seconds)
 
     def rate_policy(self, platform):
         options=self.platforms[platform]

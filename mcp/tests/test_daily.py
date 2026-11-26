@@ -195,6 +195,7 @@ class DailyRoundTest(DailyQueueTest):
                 db.update(j,Status.UNVERIFIED,Reason.INTERRUPTED,self.now)
                 db.update(j,Status.SENT,Reason.NONE)
             db.complete_batch(token)
+            return "—— 明细 ——\n成功回执\n   https://example.test/private-job"
         # SQLite cannot open one live path in dry-run; this verifies the real owned store.
         with patch.dict(os.environ,{'JOB_AGENT_HOME':self.tmp.name}),patch('service.daily.send',return_value=['tg']) as send:
             result=daily_once(config=self.cfg,collect_fn=collect,confirm_fn=confirm)
@@ -203,6 +204,8 @@ class DailyRoundTest(DailyQueueTest):
             self.assertCountEqual(calls[1:3],['higher','old'])
             self.assertEqual(calls[3],'new')
             self.assertEqual(send.call_count,2)
+            self.assertIn('成功回执',result['delivery_details'])
+            self.assertFalse(any('https://' in line for line in result['delivery_details']))
 
     def test_report_separates_preexcluded_from_actual_batch_results(self):
         import os

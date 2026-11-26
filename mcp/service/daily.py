@@ -86,10 +86,40 @@ def delivery_message(report):
             lines.append(f"  规划排除（不占本轮选择）：{planning_labels.get(reason,reason)} {count}")
         if s.get('execution_error'):
             lines.append(f"  执行中断：{s['execution_error']}，已停止本轮后续投递")
+    zero_labels={'delivery_disabled':'本轮关闭投递','platform_disabled':'本轮关闭该平台',
+                 'no_eligible_candidates':'没有符合条件的候选（含冷却期排除）',
+                 'no_confirmed_receipt':'候选未取得成功回执，见跳过、待续或不明原因',
+                 'risk_control_paused':'原站风控暂停','collection_error_or_previous_batch_stop':'采集或此前批次异常'}
+    for p,s in report.get('summary',{}).items():
+        lines.append(f"{p}：采集 {s['collection_status']} / 已采 {s['collected_pages']} 页 / 可投候选 {s['eligible_candidates']} / 冷却期排除 {s['cooldown_excluded']} / 实际投递 {s['actual_deliveries']}")
+        if s['collection_status']=='collection_timeout':
+            lines.append(f"  采到第 {s['last_page'] or s['collected_pages']} 页，因超时停止")
+        if s['zero_reason']:
+            lines.append(f"  0 条投递原因：{zero_labels.get(s['zero_reason'],s['zero_reason'])}")
     if report.get('delivery_details'):
         lines.append('明细：')
         lines.extend(l for l in report['delivery_details'] if not l.startswith('口径：'))
     return title,'\n'.join(lines)
+
+
+def summarize(report, config):
+    report['summary']={}
+    for p,options in config.engine.platforms.items():
+        collection=report.get('collection',{}).get('platforms',{}).get(p,{})
+        stats=report.get('delivery',{}).get(p,{})
+        excluded=report.get('planning_exclusions',{}).get(p,{})
+        sent=stats.get('sent',0)
+        reason=(stats.get('stop_reason') or stats.get('execution_error') or report.get('error') or
+                ('delivery_disabled' if not config.daily.deliver_enabled else
+                 'platform_disabled' if not options.enabled else
+                 'no_eligible_candidates' if not report.get('candidate_counts',{}).get(p,0) else
+                 'no_confirmed_receipt')) if not sent else ''
+        report['summary'][p]=dict(collection_status=collection.get('error') or
+            ('limited' if collection.get('limited') else 'completed' if collection else
+             'not_started' if config.daily.collect_enabled and config.collect.platforms.get(p) and config.collect.platforms[p].enabled else 'disabled'),
+            collected_pages=collection.get('pages',0),last_page=collection.get('last_page'),
+            eligible_candidates=report.get('candidate_counts',{}).get(p,0),
+            cooldown_excluded=excluded.get('known_cooldown',0),actual_deliveries=sent,zero_reason=reason)
 
 
 def daily_once(*, config=None, max_per_platform=None, collect_fn=None, confirm_fn=None, collection_page_limit=None):
@@ -137,6 +167,7 @@ def daily_once(*, config=None, max_per_platform=None, collect_fn=None, confirm_f
             blocked.update(resume_blocks)
             if result['collection'].get('busy') or result['collection'].get('stopped'):
                 blocked=set(PLATFORMS)
+            result['candidate_counts']={}
             if config.daily.deliver_enabled:
                 result['selected']=[]
                 result['planning_exclusions']={}
@@ -149,7 +180,8 @@ def daily_once(*, config=None, max_per_platform=None, collect_fn=None, confirm_f
                         stats['resume_block_reason']=resume_blocks[p]
                 for stage in ('old','new'):
                     selected=store.daily_candidates(config.engine,cutoff=cutoff,max_per_platform=max_per_platform,blocked=blocked,
-                        planning_exclusions=result['planning_exclusions'] if stage=='old' else None)
+                        planning_exclusions=result['planning_exclusions'] if stage=='old' else None,
+                        candidate_counts=result['candidate_counts'] if stage=='old' else None)
                     if stage=='new' and any(j['id']<=cutoff for j in selected):
                         break
                     selected=[j for j in selected if (j['id']<=cutoff)==(stage=='old')]
@@ -175,7 +207,7 @@ def daily_once(*, config=None, max_per_platform=None, collect_fn=None, confirm_f
                         try:
                             text=confirm_fn(store,config,token,daily=True)
                             if isinstance(text,str) and DETAIL_MARK in text:
-                                report.setdefault('delivery_details',[]).extend(text.split(DETAIL_MARK,1)[1].strip().splitlines())
+                                result.setdefault('delivery_details',[]).extend(line for line in text.split(DETAIL_MARK,1)[1].strip().splitlines() if 'http://' not in line and 'https://' not in line)
                         except Exception as e:
                             result.setdefault('errors',[]).append(dict(platform=','.join(sorted(platforms)),error=type(e).__name__))
                             for p in platforms: result['delivery'][p]['execution_error']=type(e).__name__
@@ -211,12 +243,14 @@ def daily_once(*, config=None, max_per_platform=None, collect_fn=None, confirm_f
                             if any(r.reason.value=='task_space' for r in records):
                                 blocked.update(PLATFORMS)
                             save(home,result)
+                summarize(result,config)
                 if config.notify.delivery_summary:
                     try:
                         title,text=delivery_message(result)
                         result['notifications']['delivery']=send(config,title,text)
                     except Exception as e:
                         result['notifications']['delivery_error']=type(e).__name__
+            summarize(result,config)
             result['status']='failed' if result.get('errors') else 'completed'
             return result
         except BaseException as e:
@@ -224,5 +258,6 @@ def daily_once(*, config=None, max_per_platform=None, collect_fn=None, confirm_f
             result['error']=type(e).__name__
             raise
         finally:
+            summarize(result,config)
             result['finished_at']=datetime.now().astimezone().isoformat()
             save(home,result)

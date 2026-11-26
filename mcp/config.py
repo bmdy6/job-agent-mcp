@@ -111,6 +111,13 @@ class NotifySettings(ConfigModel):
         return values
 
 
+class ObservabilitySettings(ConfigModel):
+    log_max_bytes: int = Field(default=5_000_000, ge=100_000, le=500_000_000, strict=True)
+    log_backups: int = Field(default=5, ge=1, le=50, strict=True)
+    heartbeat_stale_polls: int = Field(default=3, ge=2, le=20, strict=True)
+    heartbeat_daily_grace_minutes: int = Field(default=30, ge=5, le=360, strict=True)
+
+
 class Settings(ConfigModel):
     scoring: ScoringSettings = Field(default_factory=ScoringSettings)
     daily: DailySettings = Field(default_factory=DailySettings)
@@ -120,6 +127,7 @@ class Settings(ConfigModel):
     greetings: GreetingSettings = Field(default_factory=GreetingSettings)
     delivery: DeliverySettings = Field(default_factory=DeliverySettings)
     analytics: AnalyticsSettings = Field(default_factory=AnalyticsSettings)
+    observability: ObservabilitySettings = Field(default_factory=ObservabilitySettings)
     mode: Literal['practice', 'job'] = 'job'
     practice: PracticeSettings = Field(default_factory=PracticeSettings)
     stretch_salary_min: float | None = Field(default=None, ge=0, allow_inf_nan=False)

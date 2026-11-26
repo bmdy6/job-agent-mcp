@@ -15,7 +15,7 @@ build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
 
-py-modules = ["server", "config", "activity", "requirements", "user_data", "applications", "v1", "analytics", "delivery", "issue6", "notify", "watch", "cli", "delivery_summary", "daily_config", "scoring_config"]
+py-modules = ["server", "config", "activity", "requirements", "user_data", "applications", "v1", "analytics", "delivery", "issue6", "notify", "watch", "cli", "delivery_summary", "daily_config", "scoring_config", "logsetup"]
 
 [tool.setuptools.packages.find]
 where = ["."]

@@ -1,4 +1,6 @@
 """Synchronous, resumable offline queue; no MCP or browser integration in P1 skeleton."""
+from contextlib import ExitStack
+from browser.platform_lock import platform_lock, PlatformBusy
 import random
 import time
 from datetime import datetime
@@ -45,7 +47,9 @@ class DeliveryEngine:
                 or type(self.spaces) is not FakeTaskSpaces
                 or any(type(a) is not FakeAdapter for a in self.adapters.values())):
             raise ValueError('Dry-run accepts only built-in offline fake dependencies')
-        with self.store.exclusive():
+        with self.store.exclusive(), ExitStack() as locks:
+            locked_platforms=set()
+            busy_platforms=set()
             greetings = {p: prepare_greeting(p, s.greeting, s.greeting_newline_separator)
                          for p, s in cfg.platforms.items()}
             self.store.prepare_run(cfg.model_dump(),batch_token=batch_token,greetings=greetings)
@@ -78,6 +82,16 @@ class DeliveryEngine:
                     self.store.update(job, Status.PENDING, resume_hold)
                     continue
                 if live:
+                    if job.platform not in locked_platforms and job.platform not in busy_platforms:
+                        try:
+                            locks.enter_context(platform_lock(job.platform))
+                            locked_platforms.add(job.platform)
+                        except PlatformBusy:
+                            busy_platforms.add(job.platform)
+                    if job.platform in busy_platforms:
+                        self._inactive_platforms.add(job.platform)
+                        self.store.update(job,Status.PENDING,Reason.PLATFORM_BUSY)
+                        continue
                     if self.safety is None: raise ValueError('Live delivery requires session safety preflight')
                     if job.platform not in checked:
                         try:

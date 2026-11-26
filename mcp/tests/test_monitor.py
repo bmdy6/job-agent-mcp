@@ -78,7 +78,8 @@ class MonitorTests(unittest.TestCase):
         bad.error = RuntimeError()
         self.monitor([bad]).poll_once()
         self.monitor([bad]).poll_once()
-        self.assertEqual(self.sender.call_count, 3)
+        self.assertEqual(self.sender.call_count, 4)  # Includes one recovery notice.
+        self.assertIn('已恢复', self.sender.call_args_list[2].args[2])
         self.assertNotIn('secret', str(self.sender.call_args_list))
     def test_login_immediate_platform_pause(self):
         class LoginError(RuntimeError):

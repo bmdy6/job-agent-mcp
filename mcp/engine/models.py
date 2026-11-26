@@ -15,6 +15,7 @@ class Status(str, Enum):
 
 
 class Reason(str, Enum):
+    PLATFORM_BUSY = 'platform_busy'
     NONE = ''  # No failure/defer reason.
     DISABLED = 'disabled'  # Platform disabled; keep pending.
     DAILY_LIMIT = 'daily_limit'  # Daily attempt budget exhausted; keep pending.

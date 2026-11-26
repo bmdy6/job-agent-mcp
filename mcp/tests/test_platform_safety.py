@@ -177,11 +177,16 @@ class EntryPointTest(unittest.IsolatedAsyncioTestCase):
             home.joinpath('config.yaml').write_text(yaml.safe_dump({'engine':{'backend':'own','platforms':{'zhilian':{'enabled':True,'greeting_max_length':500}}}}))
             with Store() as store:pass
             before=home.joinpath('jobs.sqlite3').read_bytes()
+            from service.tasks import write
+            diagnostic={'count':3,'stage':'read_summary','reason_code':'summary_field_missing:latestMsgId'}
+            write(home/'monitor-runtime.json',{'platforms':{'liepin':diagnostic},'last_poll_at':123})
             browser=FakeBrowser()
             browser.executable='/nonexistent/ego-browser'
             with patch('browser.ego.EgoBrowser',return_value=browser),patch('platforms.session.check_session',return_value=SessionResult('zhilian',False,'login_required')):
                 data=(await server.mcp.call_tool('setup_check',{}))[1]
             self.assertEqual(data['checks']['platform_sessions']['platforms']['zhilian']['reason'],'login_required')
+            self.assertEqual(data['checks']['monitor_diagnostics']['platforms']['liepin'],diagnostic)
+            self.assertFalse(data['checks']['monitor_diagnostics']['ok'])
             self.assertEqual(before,home.joinpath('jobs.sqlite3').read_bytes())
 
     async def test_manual_resume_cli_exit_and_result(self):

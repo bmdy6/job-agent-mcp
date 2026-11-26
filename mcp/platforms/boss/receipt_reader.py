@@ -40,3 +40,40 @@ def read_greeting(space, job, *, clock=time.time):
                     greeting_confirmed=confirmed,attachment_confirmed=None)
     finally:
         page.close()
+
+
+def read_no_outgoing(space, job_id):
+    """Positive evidence only: missing/unloaded conversations prove nothing."""
+    page=space.new_page()
+    try:
+        page.goto(pages.CHAT_URL,wait_ms=10000)
+        pages.guard(page.evaluate(pages.STATE_JS))
+        if not pages.is_chat_url(page.url()):
+            return False
+        page.wait_for(pages.LIST)
+        listing=page.evaluate(pages.LIST_JS)
+        pages.guard(listing)
+        rows=[r for r in listing.get('rows',[]) if r.get('encryptJobId')==job_id]
+        if len(rows)!=1 or not rows[0].get('uniqueId'):
+            return False
+        row=rows[0]
+        if page.evaluate(pages.select_session(row)) is not True:
+            return False
+        page.wait_for(pages.INPUT,timeout_ms=3000)
+        for _ in range(2):
+            pages.guard(page.evaluate(pages.STATE_JS))
+            if not pages.is_chat_url(page.url()):
+                return False
+            identity=page.evaluate(pages.CHAT_IDENTITY_JS)
+            if (not isinstance(identity,dict) or identity.get('job_id')!=job_id
+                    or identity.get('conversation_id')!=row['uniqueId']):
+                return False
+            data=page.evaluate(pages.MESSAGES_JS)
+            if data.get('current_conversation_id')!=row['uniqueId']:
+                return False
+            if not pages.first_message_ready(page.evaluate(pages.CHAT_READY_JS),data,job_id,row['uniqueId']):
+                return False
+            time.sleep(.25)
+        return True
+    finally:
+        page.close()

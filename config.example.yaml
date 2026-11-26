@@ -166,7 +166,7 @@ collect:
   - 合肥
   task_space_name: job-agent 采集
   timezone: Asia/Shanghai
-  platform_timeout_seconds: 600
+  platform_timeout_seconds: null  # 自动按页数、操作、节奏、休息和余量估算；数字为手动覆盖
   fetch_jd: false
   refresh_daily: false  # true：每天各关键词/城市首屏刷新，受每日预算限制
   filters:
@@ -240,7 +240,7 @@ daily:
 #   allowed_hours: ['09:00', '21:00']
 #   timezone: Asia/Shanghai
 # Missing rate.daily_limit inherits delivery daily_limit / collection daily_page_limit.
-# collect.platform_timeout_seconds defaults to 600 (includes rate waits).
+# collect.platform_timeout_seconds defaults to null (pace-based budget, includes rest waits).
 # browser.human_input defaults and compatibility/release notes: README section #46.
 
 # #50 可选项（添加到上面的同名节点，不要重复定义 YAML 节点）：

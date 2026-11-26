@@ -46,7 +46,7 @@ globalThis.taskSpace=async()=>({ownership:"agent",tabs:async()=>[{label:"p2",ope
             run.return_value=result({'label':'p2'});page=space.new_page()
             run.return_value=result({'mouse':[123,234],'trace':[{'at':1,'x':123,'y':234}]})
             before=run.call_count
-            with self.assertLogs('browser.ego',level='INFO') as logged:
+            with self.assertLogs('browser.ego',level='DEBUG') as logged:
                 page.fill('#input','PRIVATE_BODY')
                 page.hover('#input')
             self.assertEqual(run.call_count-before,2)

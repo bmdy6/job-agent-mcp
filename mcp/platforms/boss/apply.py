@@ -23,6 +23,7 @@ class BossAdapter:
         self.attempted_at = None
         self.contact_receipt = False
         self.modal_submitted = False
+        self.message_submitted = False
         self.attempted = False
         self.attachment_requested = False
 
@@ -39,6 +40,7 @@ class BossAdapter:
         self.target,self.conversation_id,self.attempted_at=None,None,None
         self.contact_receipt=False
         self.modal_submitted=False
+        self.message_submitted=False
         self.space=self.browser.space(task_space)
         self.page = self.space.new_page()
         try:
@@ -135,7 +137,7 @@ class BossAdapter:
                 elif candidate is self.page and isinstance(identity,dict) and (
                         identity.get('job_id') not in (None,'',self.job.job_id)
                         or all(identity.get(k) for k in ('job_id','company','title','header_title'))):
-                    raise pages.PlatformStateError('原页聊天目标不匹配；不发送')
+                    self._mismatched_chat('原页聊天目标不匹配；不发送')
             if len(matches)>1:
                 raise pages.PlatformStateError('多个匹配的聊天页；不发送')
             if len(matches)==1:
@@ -149,13 +151,25 @@ class BossAdapter:
                 raise PageTimeout('目标聊天页未得到明确核验')
             sleep(.25)
 
+    def _mismatched_chat(self, detail):
+        # Never infer absence from a different conversation or a missing row.
+        # No form/composer submission has occurred on this branch.
+        if not self.modal_submitted and not self.message_submitted:
+            from .receipt_reader import read_no_outgoing
+            current=self.page.evaluate(pages.CHAT_IDENTITY_JS)
+            current_id=current.get('job_id') if isinstance(current,dict) else None
+            ids=list(dict.fromkeys([self.job.job_id,current_id]))
+            if current_id and all(read_no_outgoing(self.space,jid) for jid in ids):
+                raise pages.NotStarted('只读核验目标及当前会话均无发出消息；跳过')
+        raise pages.PlatformStateError(detail)
+
     def _chat_identity(self):
         self._guard()
         if not pages.is_chat_url(self.page.url()):
             raise pages.PlatformStateError('不是原站聊天页')
         d=self.page.evaluate(pages.CHAT_IDENTITY_JS)
         if not pages.matching_chat(self.target,d,self.job.job_id) or not d.get('conversation_id'):
-            raise pages.PlatformStateError('聊天岗位或会话不匹配；不发送')
+            self._mismatched_chat('聊天岗位或会话不匹配；不发送')
         if self.conversation_id is not None and d['conversation_id']!=self.conversation_id:
             raise pages.PlatformStateError('聊天会话变化；不发送')
         self.conversation_id=d['conversation_id']
@@ -223,6 +237,7 @@ class BossAdapter:
             if not pages.no_outgoing_message(latest,self.job.job_id,self.conversation_id):
                 raise pages.PlatformStateError('发送前出现既有或不明消息；不发送')
             phase='send_message'
+            self.message_submitted=True
             self.page.press(pages.SEND)
             phase='message_ready'
             self.page.wait_for(pages.MESSAGE_READY)

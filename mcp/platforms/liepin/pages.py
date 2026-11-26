@@ -35,11 +35,11 @@ JOB_JS = r'''() => { /* liepin.job */
 RECORDS_JS = r'''() => { /* liepin.records */
  return [...document.querySelectorAll('a[href*="/job/"],a[href*="/lptjob/"]')].map(e=>({url:e.href,text:e.closest('li')?.innerText||''}));
 }'''
-CONTACTS_JS = r'''() => { /* liepin.contacts */
+CONTACTS_JS = r'''() => { /* liepin.contacts: 11-26 live fields are latestMsgId / latestMsgTime / unReadCnt */
  const contact=e=>{let f=e[Object.keys(e).find(k=>/^__react(Fiber|InternalInstance)/.test(k))];for(let i=0;f&&i<15;i++,f=f.return)if(f.memoizedProps?.contact)return f.memoizedProps.contact;return null};
  return [...document.querySelectorAll('#im-basic-contact .im-ui-contact-list-item')].map((e,index)=>{
- const c=contact(e);return {index,id:c?.id,lastMsgId:c?.lastMsgId,
- lastTime:c?.lastMsgTime,unreadCount:c?.unreadCount};});
+ const c=contact(e);return {index,id:c?.id,lastMsgId:c?.latestMsgId??c?.lastMsgId,
+ lastTime:c?.latestMsgTime??c?.lastMsgTime,unreadCount:c?.unReadCnt??c?.unreadCount};});
 }'''
 MESSAGES_JS = r'''() => { /* liepin.messages */
  const props=(e,key)=>{let f=e?.[Object.keys(e).find(k=>/^__react(Fiber|InternalInstance)/.test(k))];for(let i=0;f&&i<20;i++,f=f.return)if(f.memoizedProps?.[key])return f.memoizedProps[key];return null};
@@ -53,9 +53,16 @@ EDITOR_JS = r'''() => { /* liepin.editor */ return document.querySelector('texta
 
 def conversation_summary(row):
     from platforms.base import ConversationSummary
-    if (not row.get('id') or row.get('lastMsgId') is None or str(row['lastMsgId']) == ''
-            or type(row.get('unreadCount')) is not int or row['unreadCount'] < 0):
-        raise Unverified('猎聘联系人消息摘要不可读；不回退为逐个打开')
+    for key, field in [('id', 'id'), ('lastMsgId', 'latestMsgId'), ('unreadCount', 'unReadCnt')]:
+        value = row.get(key)
+        if value is None or str(value) == '':
+            error = Unverified('猎聘联系人消息摘要缺字段')
+            error.reason_code = 'summary_field_missing:' + field
+            raise error
+    if (not row['id'] or type(row['unreadCount']) is not int or row['unreadCount'] < 0):
+        error = Unverified('猎聘联系人消息摘要类型不可读')
+        error.reason_code = 'summary_field_invalid'
+        raise error
     stamp = row.get('lastTime')
     stamp = stamp / 1000 if type(stamp) in (int, float) and math.isfinite(stamp) and stamp > 0 else None
     return ConversationSummary(str(row['id']), str(row['lastMsgId']), row['unreadCount'], stamp)

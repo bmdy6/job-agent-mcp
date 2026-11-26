@@ -336,7 +336,7 @@ class EgoBrowser:
             if trace and not payload.get('gesture'):
                 log.info('gesture_failed duration_ms=%s trusted=%s',trace[-1]['at']-trace[0]['at'],payload.get('trusted',[]))
             for point in trace:
-                log.info('pointer at=%s x=%s y=%s',point['at'],point['x'],point['y'])
+                log.debug('pointer at=%s x=%s y=%s',point['at'],point['x'],point['y'])
             cls = {'space_unavailable': SpaceUnavailable, 'page_timeout': PageTimeout,'risk_control':RiskControl}.get(payload.get('code'), BrowserError)
             step=payload.get('step','unknown')
             if step not in {'resolve','target_geometry','mouse.move','target_recheck','mouse.down','mouse.up','post_click_observation'}: step='unknown'
@@ -544,7 +544,7 @@ class EgoPage:
                 self._mouse=value.get('mouse')
                 trace=value.get('trace',[])
                 for point in value.get('trace',[]):
-                    log.info('pointer at=%s x=%s y=%s',point['at'],point['x'],point['y'])
+                    log.debug('pointer at=%s x=%s y=%s',point['at'],point['x'],point['y'])
                 return None
             return value
 
