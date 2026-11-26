@@ -2,6 +2,7 @@ import json
 from pathlib import Path
 from types import SimpleNamespace
 import unittest
+from unittest.mock import patch
 from browser.base import FakeBrowser, FakePage, FakeSpace
 from engine.models import Job
 from platforms.liepin.apply import LiepinAdapter
@@ -46,6 +47,35 @@ class SequencePage(FakePage):
         return super().evaluate(js)
 
 class AdapterBTests(unittest.TestCase):
+    def test_job51_failed_attachment_event_is_reported_without_success_timeout(self):
+        from browser.base import PageTimeout
+        class FailedReceiptPage(SequencePage):
+            def wait_for(self, selector, **kwargs):
+                if selector == 'html[data-job-agent-attachment-status="1"]':
+                    raise PageTimeout('No success marker: the actual event is failure')
+                return super().wait_for(selector, **kwargs)
+        failure=attachment(True,True)
+        failure['receipt']['sendStatus']=0
+        p=FailedReceiptPage('p2',{'job51.job':job51(), 'job51.observe':True,
+                               'job51.attachment':[attachment(),attachment(True),failure]})
+        a=Job51Adapter(FakeBrowser({'test':FakeSpace('test',pages=[p])}),SimpleNamespace(greeting_max_length=800))
+        a.open_job(Job('51job','172037288','https://jobs.51job.com/all/172037288.html'),'test')
+        a.send_greeting('全文')
+        with self.assertRaises(jp.AttachmentUnverified) as raised:a.choose_attachment('示例候选人_简历')
+        self.assertIn('sendStatus=0',str(raised.exception))
+        self.assertNotIn('PageTimeout',str(raised.exception))
+
+    def test_job51_attachment_diagnostics_are_safe_and_risk_is_preserved(self):
+        from browser.base import BrowserError, RiskControl
+        a,p=setup(Job51Adapter,{'job51.job':job51(),'job51.observe':True},Job('51job','172037288','https://jobs.51job.com/all/172037288.html'))
+        a.send_greeting('全文')
+        with patch.object(p,'wait_for',side_effect=BrowserError('private page text')):
+            with self.assertRaises(jp.AttachmentUnverified) as raised:a.choose_attachment('示例候选人_简历')
+        self.assertIn('wait_rows',str(raised.exception))
+        self.assertNotIn('private page text',str(raised.exception))
+        with patch.object(p,'wait_for',side_effect=RiskControl('risk')):
+            with self.assertRaises(RiskControl):a.choose_attachment('示例候选人_简历')
+
     def test_liepin_p0_application_and_contact_are_distinct(self):
         for name in ('applied-job','applied-lptjob','chat-only-job'):
             a,p=setup(LiepinAdapter,{'liepin.guard':{},'liepin.job':fixture('liepin',name)})

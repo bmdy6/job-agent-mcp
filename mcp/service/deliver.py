@@ -136,6 +136,8 @@ def summary(records, *, dry_run, details=None):
                 lines.extend(job_line(r, details.get((platform, r.job.job_id))))
     if not dry_run:
         lines.append('口径：BOSS 的成功是沟通回执，不等于简历送达；猎聘只算正式简历回执。')
+        if any(r.job.platform == '51job' for r in records):
+            lines.append('51job：成功表示申请后指定附件回执已确认；桌面流程未发送招呼语，已申请和招呼语送达分别统计。')
     return '\n'.join(lines)
 
 

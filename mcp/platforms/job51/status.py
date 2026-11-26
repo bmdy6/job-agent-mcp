@@ -79,6 +79,42 @@ def parse_application_page(data, tag):
     return rows, next_url
 
 
+def read_applications(space, *, tag=''):
+    """Read one complete official filter, validating every page before following it."""
+    if tag not in ('', *STATUS_TAGS):
+        raise ValueError('Unknown application filter')
+    page = space.new_page()
+    try:
+        return read_application_pages(page, tag=tag)
+    finally:
+        page.close()
+
+
+def read_application_pages(page, *, tag=''):
+    """Reuse an owned temporary page; the caller owns cleanup."""
+    if tag not in ('', *STATUS_TAGS):
+        raise ValueError('Unknown application filter')
+    url, rows, seen_urls, last_page = APPLICATION_URL + tag, [], set(), 0
+    expected_pages = None
+    while url:
+        if url in seen_urls:
+            raise Unverified('51job 申请分页重复')
+        seen_urls.add(url)
+        page.goto(url, wait_ms=10000)
+        data = page.evaluate(APPLICATION_JS)
+        current_rows, url = parse_application_page(data, tag)
+        if expected_pages is not None and data['pages'] != expected_pages:
+            raise Unverified('51job 申请分页在读取期间变化，下轮重新读取')
+        expected_pages = data['pages']
+        if current_rows and data['page'] != last_page + 1:
+            raise Unverified('51job 申请分页不连续')
+        last_page = data['page']
+        rows.extend(current_rows)
+    if len({r['id'] for r in rows}) != len(rows):
+        raise Unverified('51job 申请岗位重复，列表可能发生变化')
+    return rows
+
+
 def conversation_summaries(snapshots):
     """Status-only equivalent: one stable application/date/status-set summary."""
     from platforms.base import ConversationSummary

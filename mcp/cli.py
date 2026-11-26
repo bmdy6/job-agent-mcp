@@ -54,6 +54,8 @@ def main(argv=None):
     daily.add_argument('--max-per-platform', type=int, help='Acceptance-only cap, 1..3 jobs per platform')
     audit = sub.add_parser('verify-receipt', help='Read the original site for one uncertain application; never submits or rewrites history')
     audit.add_argument('--job-id', type=int, required=True, help='Owned database row ID of the uncertain attempt')
+    reconcile51 = sub.add_parser('reconcile-51job', help='Read official 51job applications and reconcile local evidence; never submits or writes history')
+    reconcile51.add_argument('--database', help='Owned database to open read-only')
     receipt_status = sub.add_parser('resume-status', help='Read local resume evidence and the old-job review list; never sends')
     receipt_status.add_argument('--before', help='Only jobs collected before YYYY-MM-DD (China time)')
     receipt_status.add_argument('--include-jobs', action='store_true')
@@ -89,6 +91,14 @@ def main(argv=None):
         settings = config_module.load_config()
         print(json.dumps(run_once(settings, config_module.job_agent_home(), send=notifier(settings)), ensure_ascii=False))
         return 0
+    if args.command == 'reconcile-51job':
+        from service.job51_reconcile import run
+        try:
+            print(json.dumps(run(database=args.database), ensure_ascii=False))
+            return 0
+        except Exception as error:
+            log.error('51job reconciliation failed error_type=%s', type(error).__name__)
+            return 1
     if args.command == 'resume-platform':
         from service.safety import resume_platform
         try:

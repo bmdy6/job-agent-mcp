@@ -9,7 +9,7 @@ GREETING_NEWLINE = 'reject'  # Desktop has no verified greeting editor.
 APPLY = '.apply-btn-new.big'
 DIALOG = '.attachment_resume_dialog'
 ROWS = DIALOG + ' .attachment_item'
-ATTACHMENT_RECEIPT = 'html[data-job-agent-attachment-status="1"]'
+ATTACHMENT_RECEIPT = 'html[data-job-agent-attachment-status]'
 SEND_ATTACHMENT = DIALOG + ' .el-dialog__footer button.el-button--primary'
 CHAT_URL = 'https://we.51job.com/pc/my/myjob'
 
