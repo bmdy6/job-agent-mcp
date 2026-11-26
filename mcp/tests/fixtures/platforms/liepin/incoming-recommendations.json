@@ -1,0 +1,203 @@
+{
+  "provenance": {
+    "captured_on": "2026-11-24",
+    "browser": "Ego Lite / ego-browser nodejs",
+    "kind": "observed_react_message_props",
+    "redaction": "姓名、公司、正文、各类ID、附件姓名已替换；字段名、类型、状态、class保持。",
+    "source_artifact": "liepin-headhunter-messages.json",
+    "source_sha256": "70285421ca29e91cca038c250881258df4e1af7d6bd0105e985be5d3f6a47a55"
+  },
+  "contact": {
+    "company": "示例顾问公司",
+    "name": "招聘者甲",
+    "id": "contact-recommendation-001",
+    "id_is_job_id": false
+  },
+  "items": [
+    {
+      "direction": "1",
+      "msgType": "txt",
+      "extType": 1,
+      "bizType": "1",
+      "msgTime": 1795487299000,
+      "formatTime": "10:28",
+      "type": "txt",
+      "timeContinuous": false,
+      "readflag": "0",
+      "oppositeRead": "1",
+      "msgId": "recommendation-001",
+      "msg": "[正文已脱敏]",
+      "bizDataKeys": [],
+      "bsDataType": "dict",
+      "domClasses": [
+        "im-ui-message-item im-ui-message-item-wrapper im-ui-message-item-showTime hasAvatar",
+        "im-ui-system-tip format-time",
+        "im-ui-message-item-body im-ui-message-item-receive",
+        "im-ui-message-item-content-wrap",
+        "im-ui-message-item-normal-message-wrapper",
+        "im-ui-message-item-extra-info",
+        "im-ui-message-item-loadingicon im-ui-message-item-loadingicon-receive hide",
+        "im-ui-message-extra-icon im-ui-message-extra-content-actions im-ui-message-extra-content-actions-receive im-ui-message-item-content-actions im-ui-message-item-content-actions-receive hide",
+        "im-ui-message-item-extra-detail",
+        "im-ui-message-item-quote-wrap"
+      ],
+      "bsData": {
+        "sendType": "1"
+      }
+    },
+    {
+      "direction": "1",
+      "msgType": "txt",
+      "extType": 221,
+      "bizType": "1",
+      "msgTime": 1795487299000,
+      "formatTime": "10:28",
+      "type": "txt",
+      "timeContinuous": true,
+      "readflag": "0",
+      "oppositeRead": "1",
+      "msgId": "recommendation-002",
+      "msg": "[职位卡片]",
+      "bizDataKeys": [
+        "communicateJobId",
+        "communicateJobType",
+        "compLogo",
+        "jobCompany",
+        "jobDqName",
+        "jobSalary",
+        "jobTitle",
+        "jobUpdateTime",
+        "reqEdu",
+        "sourceFlag"
+      ],
+      "bsDataType": "str",
+      "domClasses": [
+        "im-ui-message-item im-ui-message-item-wrapper time-continuous hasAvatar consequence",
+        "im-ui-system-tip format-time",
+        "im-ui-message-item-body im-ui-message-item-receive",
+        "im-ui-message-item-content-wrap",
+        "im-ui-message-item-normal-message-wrapper",
+        "_11156b_l2O im-ui-message-card-wrapper",
+        "im-ui-message-item-extra-info",
+        "im-ui-message-item-loadingicon im-ui-message-item-loadingicon-receive hide",
+        "im-ui-message-extra-icon im-ui-message-extra-content-actions im-ui-message-extra-content-actions-receive im-ui-message-item-content-actions im-ui-message-item-content-actions-receive hide",
+        "im-ui-message-item-extra-detail",
+        "im-ui-message-item-quote-wrap"
+      ],
+      "bizData": {
+        "communicateJobId": 90000004,
+        "communicateJobType": 0,
+        "sourceFlag": 3
+      }
+    },
+    {
+      "direction": "1",
+      "msgType": "txt",
+      "extType": 1,
+      "bizType": "1",
+      "msgTime": 1795487299000,
+      "formatTime": "10:28",
+      "type": "txt",
+      "timeContinuous": true,
+      "readflag": "0",
+      "oppositeRead": "1",
+      "msgId": "recommendation-003",
+      "msg": "[正文已脱敏]",
+      "bizDataKeys": [],
+      "bsDataType": "dict",
+      "domClasses": [
+        "im-ui-message-item im-ui-message-item-wrapper time-continuous hasAvatar consequence",
+        "im-ui-system-tip format-time",
+        "im-ui-message-item-body im-ui-message-item-receive",
+        "im-ui-message-item-content-wrap",
+        "im-ui-message-item-normal-message-wrapper",
+        "im-ui-message-item-extra-info",
+        "im-ui-message-item-loadingicon im-ui-message-item-loadingicon-receive hide",
+        "im-ui-message-extra-icon im-ui-message-extra-content-actions im-ui-message-extra-content-actions-receive im-ui-message-item-content-actions im-ui-message-item-content-actions-receive hide",
+        "im-ui-message-item-extra-detail",
+        "im-ui-message-item-quote-wrap"
+      ],
+      "bsData": {
+        "sendType": "1"
+      }
+    },
+    {
+      "direction": "1",
+      "msgType": "txt",
+      "extType": 1,
+      "bizType": "1",
+      "msgTime": 1795487299000,
+      "formatTime": "10:28",
+      "type": "txt",
+      "timeContinuous": true,
+      "readflag": "0",
+      "oppositeRead": "1",
+      "msgId": "recommendation-004",
+      "msg": "[正文已脱敏]",
+      "bizDataKeys": [],
+      "bsDataType": "dict",
+      "domClasses": [
+        "im-ui-message-item im-ui-message-item-wrapper time-continuous hasAvatar consequence",
+        "im-ui-system-tip format-time",
+        "im-ui-message-item-body im-ui-message-item-receive",
+        "im-ui-message-item-content-wrap",
+        "im-ui-message-item-normal-message-wrapper",
+        "im-ui-message-item-extra-info",
+        "im-ui-message-item-loadingicon im-ui-message-item-loadingicon-receive hide",
+        "im-ui-message-extra-icon im-ui-message-extra-content-actions im-ui-message-extra-content-actions-receive im-ui-message-item-content-actions im-ui-message-item-content-actions-receive hide",
+        "im-ui-message-item-extra-detail",
+        "im-ui-message-item-quote-wrap",
+        "im-ui-message-item-ai-tip"
+      ],
+      "bsData": {
+        "aiMark": true,
+        "sendType": "1"
+      }
+    },
+    {
+      "direction": "1",
+      "msgType": "txt",
+      "extType": 221,
+      "bizType": "6",
+      "msgTime": 1795487299000,
+      "formatTime": "10:28",
+      "type": "txt",
+      "timeContinuous": true,
+      "readflag": "0",
+      "oppositeRead": "1",
+      "msgId": "recommendation-005",
+      "msg": "[意向卡片]",
+      "bizDataKeys": [
+        "btnStatus",
+        "communicateJobId",
+        "communicateJobType",
+        "extData",
+        "intentionTaskId",
+        "sourceFlag"
+      ],
+      "bsDataType": "str",
+      "domClasses": [
+        "im-ui-message-item im-ui-message-item-wrapper time-continuous hasAvatar consequence",
+        "im-ui-system-tip format-time",
+        "im-ui-message-item-body im-ui-message-item-receive",
+        "im-ui-message-item-content-wrap",
+        "im-ui-message-item-normal-message-wrapper",
+        "_11156kWWH0 im-ui-message-card-wrapper",
+        "im-ui-message-item-extra-info",
+        "im-ui-message-item-loadingicon im-ui-message-item-loadingicon-receive hide",
+        "im-ui-message-extra-icon im-ui-message-extra-content-actions im-ui-message-extra-content-actions-receive im-ui-message-item-content-actions im-ui-message-item-content-actions-receive hide",
+        "im-ui-message-item-extra-detail",
+        "im-ui-message-item-quote-wrap"
+      ],
+      "bizData": {
+        "btnStatus": 0,
+        "communicateJobId": 90000004,
+        "communicateJobType": 0,
+        "sourceFlag": 3
+      }
+    }
+  ],
+  "human_hr_reply_verified": false,
+  "note": "雇主会话仅发件和系统消息；收件会话显示内容由AI生成，且不在两条已投记录中。",
+  "observedConversationLabel": "内容由AI生成"
+}

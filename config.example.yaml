@@ -1,0 +1,253 @@
+# Copy to $JOB_AGENT_HOME/config.yaml (default: ~/.job-agent/config.yaml).
+# Empty lists mean all saved jobs. No profession or city is built in.
+directions: []  # jd_requirements: literal keywords in title/JD, OR matching
+cities: []      # default jd_requirements city filter
+platforms: []   # boss, liepin, 51job, zhilian; [] = all
+bosshunter:
+  port: 8686    # host always 127.0.0.1; BOSSHUNTER_PORT overrides for compatibility
+browser:
+  name: chrome # descriptive; ego-lite also verified (see docs/browser.md)
+  cdp_url: http://127.0.0.1:9222
+  keepalive_seconds: 300 # own Ego engine; 0 disables; idle control vanished at 25–30 min
+# Browser settings are exposed by status; own browser access goes through Ego Lite.
+
+mode: job      # practice or job; interpreted by the Agent, not an automatic sender
+practice:
+  max_interviews_per_week: 3
+stretch_salary_min: null # monthly K CNY; null = no stretch line configured
+
+# Highest-scoring unique companies only; 0 disables customization.
+greetings:
+  top_n: 20
+# own 的频率和每日限额由 engine.platforms 配置。
+delivery:
+  confirm_ttl_minutes: 30 # 1–30; shorter is allowed, never extend existing tokens
+  preview_limit: 5       # 1–30; explicit job_ids binds exactly those IDs (max 30)
+analytics:
+  activity_days: 7       # 1–365; affects history only, funnel remains all-time
+  score_bands: [60, 80]  # increasing integer lower bounds: 0–59, 60–79, 80–100
+
+# 付费评分：先 preview_scoring 看请求数，用户授权后 start_scoring(confirm=true)。
+# 不由每日任务自动调用；每批最多10个选定岗位，串行，无自动重试。
+scoring:
+  model: gpt-6.1-sol
+  service_tier: priority
+  base_url: https://api.openai.com/v1
+  max_completion_tokens: 1200
+  connect_timeout_seconds: 5 # 每个地址的连接等待上限，避免坏 IPv6 拖慢回退
+  timeout_seconds: 60 # 连接后等待模型响应
+  max_jobs: 10
+  max_input_chars: 60000 # 主简历+经历+JD 超限时报错，不截断
+  resume_path: ~/.job-agent/resume.md # 显式主简历，UTF-8 文本/Markdown
+  key_source: vault # 或 env，使用 api_key_env
+  api_key_env: OPENAI_API_KEY
+  vault_path: ~/.config/ai-vault/vault.json
+  vault_group: personal-infra
+  vault_service: openai
+  vault_key: OPENAI_PLATFORM_API_KEY
+
+# All channels AND the master switch default to false. Secret VALUES must never
+# appear here; inject the referenced environment variables into the process.
+notify:
+  enabled: false
+  interval_minutes: 5
+  draft_reply: false
+  delivery_summary: true # completed/failed deliver summaries to enabled Telegram channels
+  channels:
+    telegram:
+      type: telegram
+      enabled: false
+      bot_token_env: JOB_AGENT_TG_BOT_TOKEN
+      chat_id: "" # your own private chat ID
+    wecom:
+      type: webhook
+      format: wecom
+      enabled: false
+      url_env: JOB_AGENT_WECOM_WEBHOOK_URL
+    serverchan:
+      type: webhook
+      format: serverchan
+      enabled: false
+      sendkey_env: JOB_AGENT_SERVERCHAN_SENDKEY
+    # A generic webhook receives JSON {title, text, url}.
+    # custom:
+    #   type: webhook
+    #   enabled: false
+    #   url_env: JOB_AGENT_WEBHOOK_URL
+  ai:
+    base_url: https://api.openai.com/v1
+    model: "" # required only when draft_reply=true
+    api_key_env: OPENAI_API_KEY
+    resume_path: ~/.job-agent/resume.md # explicit main résumé, UTF-8 Markdown/text
+
+# own MCP/CLI 共用自建服务；bosshunter 仅作可选兼容后端。
+engine:
+  backend: own
+  cooldown:
+    days: 30
+    company_patterns:
+      - '[（(][^()（）]*[)）]'
+      - '(?:股份有限责任公司|股份有限公司|有限责任公司|有限公司)$'
+    title_patterns:
+      - '急招|诚聘|高薪|招聘'
+      - '\d+(?:\.\d+)?\s*[-~—至]\s*\d+(?:\.\d+)?\s*[kK千万](?:[/·].*)?'
+  dry_run: true # offline Fake only; use an explicitly separate database
+  live_send_enabled: false # true AND dry_run:false AND immutable confirmed batch required
+  monitor:
+    task_space_name: "job-agent 监听"
+    backfill_hours: 48 # fixed at first activation; older replies remain stored, never pushed
+    interval_minutes: 5
+    failure_threshold: 3
+    platforms: [boss, zhilian, liepin, "51job"]
+  task_space_name: "job-agent 投递" # resolve/create by name; never use BossHunter space 28
+  timezone: Asia/Shanghai # calendar day for per-platform attempt budgets
+  platforms:
+    boss:
+      expected_account_type: any # student / professional only when explicitly required
+      enabled: false
+      greeting: ""
+      greeting_mode: send_message
+      greeting_newline_separator: "；" # unsupported/unverified platform newline fallback; also accepts " "
+      greeting_max_length: 0 # unknown pending P0; set verified value before enabling
+      daily_limit: 140
+      rate:
+        interval_seconds: [45, 120]
+        hourly_limit: 20
+      attachment_name: "示例候选人_简历"
+    zhilian:
+      expected_account_type: any # student / professional only when explicitly required
+      enabled: false
+      greeting: ""
+      greeting_mode: platform_default
+      greeting_max_length: 0 # pending P0, not a claim about the platform
+      daily_limit: 90
+      rate:
+        interval_seconds: [45, 120]
+        hourly_limit: 20
+      attachment_name: "示例候选人_简历"
+    liepin:
+      expected_account_type: any # student / professional only when explicitly required
+      enabled: false
+      greeting: ""
+      greeting_mode: send_message
+      greeting_newline_separator: "；" # live newline method unverified; preview shows flattened text
+      greeting_max_length: 0 # pending P0
+      daily_limit: 1
+      rate:
+        interval_seconds: [45, 120]
+        hourly_limit: 20
+      attachment_name: "示例候选人_简历"
+    51job:
+      expected_account_type: any # student / professional only when explicitly required
+      enabled: false
+      greeting: ""
+      greeting_mode: none
+      greeting_max_length: 0 # pending P0
+      daily_limit: 1
+      rate:
+        interval_seconds: [45, 120]
+        hourly_limit: 20
+      attachment_name: "示例候选人_简历"
+
+# Read-only collection (#15). Daily limits count search requests, including failed/empty pages.
+# Detail visits are optional, paced by the same interval, and do not consume search quota.
+# City codes below are reference data; JobSource maps SearchQuery.city in its pages.py.
+collect:
+  keywords:
+  - AI应用开发工程师
+  - Agent开发工程师
+  - 大模型应用开发工程师
+  cities:
+  - 苏州
+  - 上海
+  - 杭州
+  - 南京
+  - 无锡
+  - 合肥
+  task_space_name: job-agent 采集
+  timezone: Asia/Shanghai
+  platform_timeout_seconds: 600
+  fetch_jd: false
+  refresh_daily: false  # true：每天各关键词/城市首屏刷新，受每日预算限制
+  filters:
+    salary_min_k: 8
+    title_exclude: []
+    company_exclude: []
+    blocked_companies: []
+  platforms:
+    boss:
+      enabled: false
+      daily_page_limit: 20
+      rate:
+        interval_seconds: [45, 120]
+        hourly_limit: 20
+      city_codes:
+        苏州: '101190400'
+        上海: '101020100'
+        杭州: '101210100'
+        南京: '101190100'
+    zhilian:
+      enabled: false
+      daily_page_limit: 20
+      rate:
+        interval_seconds: [45, 120]
+        hourly_limit: 20
+      city_codes:
+        苏州: '639'
+        上海: '538'
+        杭州: '653'
+        南京: '635'
+    liepin:
+      enabled: false
+      daily_page_limit: 20
+      rate:
+        interval_seconds: [45, 120]
+        hourly_limit: 20
+      city_codes:
+        苏州: 060080
+        上海: '020'
+        杭州: '070020'
+        南京: '060020'
+    51job:
+      enabled: false
+      daily_page_limit: 20
+      rate:
+        interval_seconds: [45, 120]
+        hourly_limit: 20
+      city_codes:
+        上海: '020000'
+        苏州: '070300'
+        杭州: 080200
+        南京: '070200'
+
+# 每天自动执行采集 -> 投递；所有入口默认关闭，需用户明确授权。
+daily:
+  enabled: false
+  collect_enabled: true
+  deliver_enabled: false
+  hour: 8
+  minute: 0
+# 日常配置还需 collect.fetch_jd: true、collect.refresh_daily: true；四个平台 enabled: true。
+# engine.cooldown 默认 days: 30，规范化正则可按 README 的配置覆盖。
+
+# #46: conservative rates for the own backend. Optional rate blocks belong under
+# engine.platforms.<platform> or collect.platforms.<platform>, for example:
+# rate:
+#   interval_seconds: [45, 120]
+#   hourly_limit: 20
+#   rest_every: [8, 15]
+#   rest_seconds: [300, 900]
+#   allowed_hours: ['09:00', '21:00']
+#   timezone: Asia/Shanghai
+# Missing rate.daily_limit inherits delivery daily_limit / collection daily_page_limit.
+# collect.platform_timeout_seconds defaults to 600 (includes rate waits).
+# browser.human_input defaults and compatibility/release notes: README section #46.
+
+# #50 可选项（添加到上面的同名节点，不要重复定义 YAML 节点）：
+# engine.minimum_hr_activity: null  # null 不过滤；now / today / three_days / week
+# engine.experience_priority: [应届, 经验不限, 1-3年]  # 默认 []；活跃度之后、分数之前
+# engine.monitor.classification_enabled: true
+# engine.monitor.classification_model_enabled: false  # 开启后复用 scoring 的模型、key 和超时
+# engine.monitor.classification_model_limit: 5  # 每轮监听全平台合计，0..30，无自动重试
+# engine.monitor.classification_batch_limit: 20  # 每轮每个平台批量；积压持久保留到下一轮
+# analytics.greeting_min_samples: 20  # 版本样本数不足时只显示“样本不足”

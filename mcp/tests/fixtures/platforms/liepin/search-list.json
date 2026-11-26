@@ -1,0 +1,37 @@
+{
+  "url": "https://www.liepin.com/zhaopin/",
+  "loggedIn": true,
+  "risk": false,
+  "ready": true,
+  "page": 1,
+  "items": [
+    {
+      "id": "90000001",
+      "url": "https://www.liepin.com/job/1990000001.shtml",
+      "title": "AI应用开发工程师",
+      "company": "示例企业1",
+      "city": "上海-浦东新区",
+      "salary": "12-20k",
+      "experience": "应届",
+      "education": "硕士"
+    },
+    {
+      "id": "90000002",
+      "url": "https://www.liepin.com/job/1990000002.shtml",
+      "title": "AI应用开发工程师",
+      "company": "示例企业2",
+      "city": "上海-徐汇区",
+      "salary": "25-35k·15薪",
+      "experience": "应届",
+      "education": "硕士"
+    }
+  ],
+  "hasNext": true,
+  "empty": false,
+  "evidence": {
+    "date": "2026-11-24",
+    "query": "AI应用开发 / 上海",
+    "kind": "live DOM projection; identities replaced; first 2 rows",
+    "source_page": 1
+  }
+}

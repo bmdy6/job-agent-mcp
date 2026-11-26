@@ -1,0 +1,28 @@
+{
+  "captured_at": "2026-11-24T06:23:20.671Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "method": "native keyboard.paste repeated BMP Chinese character 测; no Enter or send",
+  "results": [
+    {
+      "attempt": 999,
+      "retained": 999,
+      "warning": false
+    },
+    {
+      "attempt": 1000,
+      "retained": 1000,
+      "warning": false
+    },
+    {
+      "attempt": 1001,
+      "retained": 0,
+      "warning": true
+    }
+  ],
+  "after": {
+    "empty": true,
+    "message_count": 2
+  },
+  "caveat": "fill accepted 6000 but native paste enforces 1000; server-side send limit not exercised"
+}

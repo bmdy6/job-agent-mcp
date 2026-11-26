@@ -1,0 +1,12 @@
+{
+  "risk": false,
+  "login_required": false,
+  "id": "collect-example-1",
+  "jd": "岗位职责：\n1、负责 AI 应用开发。\n任职要求：\n熟悉 Python、RAG、Agent。",
+  "evidence": {
+    "date": "2026-11-24",
+    "redacted": true,
+    "original_jd_length": 594,
+    "jd_selector_observed": true
+  }
+}

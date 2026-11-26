@@ -1,0 +1,37 @@
+{
+  "provenance": {
+    "captured_on": "2026-11-24",
+    "browser": "Ego Lite / ego-browser nodejs",
+    "kind": "observed_dom",
+    "redaction": "姓名、公司、正文、各类ID、附件姓名已替换；字段名、类型、状态、class保持。",
+    "source_artifact": "51job-resume-center.html",
+    "source_sha256": "e057321e58022cc1ca85ed1fbdf4433b12aaaf1a2c7afe77145e74fc14ed87e5"
+  },
+  "targetPresent": true,
+  "targetName": "候选人_AI开发_1123_v8.1",
+  "nameAncestors": [
+    {
+      "tag": "span",
+      "class": "name"
+    },
+    {
+      "tag": "div",
+      "class": "uploadName"
+    },
+    {
+      "tag": "div",
+      "class": "uploadOperate"
+    },
+    {
+      "tag": "div",
+      "class": ""
+    }
+  ],
+  "applicationSelectionVerified": false,
+  "menuActions": [
+    "重命名",
+    "同步更新在线简历",
+    "删除"
+  ],
+  "note": "存在附件不等于该次投递选中；未上传、改名或删除。"
+}

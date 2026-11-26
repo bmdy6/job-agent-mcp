@@ -1,0 +1,28 @@
+{
+  "provenance": {
+    "captured_on": "2026-11-24",
+    "browser": "Ego Lite / ego-browser nodejs",
+    "kind": "observed_vuex_user_info",
+    "redaction": "姓名、公司、正文、各类ID、附件姓名已替换；字段名、类型、状态、class保持。",
+    "source_artifact": "51job-user-notification.json",
+    "source_sha256": "0427d4f0cb958deaa2917b115b3b42e99416a8f1f407cfbc8b6974a93cbce40a"
+  },
+  "sourceGetter": "commonStore/userInfo",
+  "data": {
+    "news": "1",
+    "hrName": "招聘者乙",
+    "coName": "示例企业乙",
+    "jobid": "190000002",
+    "ctmid": "company-example-b",
+    "hruid": "hr-example-b",
+    "qrCodeUrl": "//img01.51jobcdn.com/im/2020/my/newsChate_code.png"
+  },
+  "messageBody": null,
+  "messageId": null,
+  "messageTime": null,
+  "direction": null,
+  "isAppliedJob": false,
+  "renderedReminderObserved": false,
+  "desktopEditorsFound": 0,
+  "note": "非空提醒元数据，不是非空聊天列表；岗位与唯一申请不匹配。"
+}

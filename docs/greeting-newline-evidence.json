@@ -1,0 +1,21 @@
+{
+  "source": "Ego Lite live BOSS existing conversation, branch driver; input/readback/clear only",
+  "captured_at": "2026-11-26T13:37:47.813967+08:00",
+  "task_space_name": "job-agent 采集",
+  "expected_length": 219,
+  "expected_lines": 5,
+  "exact_match": true,
+  "actual_length": 219,
+  "actual_lines": 5,
+  "shift_enter_events": 4,
+  "plain_enter_events": 0,
+  "messages_unchanged_after_input": true,
+  "cleared": true,
+  "messages_unchanged_after_clear": true,
+  "sent": false,
+  "screenshots": "Private local archive only; no contact, company, conversation IDs or chat text published",
+  "screenshot_sha256": {
+    "boss-filled.png": "9f48d4647fa75d7567863e800ca83ec22e3e54d10d1a2e9b0dd2775b35e892c6",
+    "boss-cleared.png": "99c88d1534eed821bb17d5156b1890c6ba87268efc02236d62bc72e13dbf5228"
+  }
+}

@@ -1,0 +1,150 @@
+{
+  "captured_at": "2026-11-24T06:28:17.111Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "observed_via": "element.__vue__.$props on nested .im-message; duplicate roots retain same id; values pseudonymized",
+  "messages": [
+    {
+      "msg": {
+        "id": "client-fixture-0",
+        "idClient": "client-fixture-0",
+        "idServer": "server-fixture-0",
+        "sendMessageId": "send-fixture-0",
+        "flow": "out",
+        "fromMe": true,
+        "time": 1795484100000,
+        "type": "text",
+        "cardType": null,
+        "body": "[脱敏消息]",
+        "content": "[脱敏消息]",
+        "sendState": "success"
+      },
+      "session": {
+        "sessionId": "session-fixture",
+        "jobNumber": "CC000000000J00000000000",
+        "companyName": "示例公司甲",
+        "jobTitle": "示例岗位甲",
+        "selfReply": 1,
+        "oppositeReply": 0
+      },
+      "live_types": {
+        "time": "number",
+        "jobNumber": "string"
+      }
+    },
+    {
+      "msg": {
+        "id": "client-fixture-0",
+        "idClient": "client-fixture-0",
+        "idServer": "server-fixture-0",
+        "sendMessageId": "send-fixture-0",
+        "flow": "out",
+        "fromMe": true,
+        "time": 1795484100000,
+        "type": "text",
+        "cardType": null,
+        "body": "[脱敏消息]",
+        "content": "[脱敏消息]",
+        "sendState": "success"
+      },
+      "session": {
+        "sessionId": "session-fixture",
+        "jobNumber": "CC000000000J00000000000",
+        "companyName": "示例公司甲",
+        "jobTitle": "示例岗位甲",
+        "selfReply": 1,
+        "oppositeReply": 0
+      },
+      "live_types": {
+        "time": "number",
+        "jobNumber": "string"
+      }
+    },
+    {
+      "msg": {
+        "id": "client-fixture-1",
+        "idClient": "client-fixture-1",
+        "idServer": "server-fixture-1",
+        "sendMessageId": "send-fixture-1",
+        "flow": "out",
+        "fromMe": true,
+        "time": 1795484100001,
+        "type": "custom",
+        "cardType": "177",
+        "body": "[脱敏消息]",
+        "content": {
+          "operationScene": "[脱敏值]",
+          "decryptedResumeNumber": "[脱敏值]",
+          "attachmentType": "[脱敏值]",
+          "language": "[脱敏值]",
+          "operationSceneV2": "[脱敏值]",
+          "rootOrgId": "[脱敏值]",
+          "attachmentIdText": "[脱敏值]",
+          "content": "[脱敏值]",
+          "scene": "[脱敏值]",
+          "attachmentTitle": "[脱敏值]",
+          "attachmentId": "[脱敏值]",
+          "resumeNumber": "[脱敏值]",
+          "jobNumber": "[脱敏值]",
+          "staffId": "[脱敏值]"
+        },
+        "sendState": "success"
+      },
+      "session": {
+        "sessionId": "session-fixture",
+        "jobNumber": "CC000000000J00000000000",
+        "companyName": "示例公司甲",
+        "jobTitle": "示例岗位甲",
+        "selfReply": 1,
+        "oppositeReply": 0
+      },
+      "live_types": {
+        "time": "number",
+        "jobNumber": "string"
+      }
+    },
+    {
+      "msg": {
+        "id": "client-fixture-1",
+        "idClient": "client-fixture-1",
+        "idServer": "server-fixture-1",
+        "sendMessageId": "send-fixture-1",
+        "flow": "out",
+        "fromMe": true,
+        "time": 1795484100001,
+        "type": "custom",
+        "cardType": "177",
+        "body": "[脱敏消息]",
+        "content": {
+          "operationScene": "[脱敏值]",
+          "decryptedResumeNumber": "[脱敏值]",
+          "attachmentType": "[脱敏值]",
+          "language": "[脱敏值]",
+          "operationSceneV2": "[脱敏值]",
+          "rootOrgId": "[脱敏值]",
+          "attachmentIdText": "[脱敏值]",
+          "content": "[脱敏值]",
+          "scene": "[脱敏值]",
+          "attachmentTitle": "[脱敏值]",
+          "attachmentId": "[脱敏值]",
+          "resumeNumber": "[脱敏值]",
+          "jobNumber": "[脱敏值]",
+          "staffId": "[脱敏值]"
+        },
+        "sendState": "success"
+      },
+      "session": {
+        "sessionId": "session-fixture",
+        "jobNumber": "CC000000000J00000000000",
+        "companyName": "示例公司甲",
+        "jobTitle": "示例岗位甲",
+        "selfReply": 1,
+        "oppositeReply": 0
+      },
+      "live_types": {
+        "time": "number",
+        "jobNumber": "string"
+      }
+    }
+  ]
+}

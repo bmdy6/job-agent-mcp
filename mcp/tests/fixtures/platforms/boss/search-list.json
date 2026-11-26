@@ -1,0 +1,39 @@
+{
+  "risk": false,
+  "login_required": false,
+  "ready": true,
+  "has_more": true,
+  "rows": [
+    {
+      "id": "collect-example-1",
+      "url": "https://www.zhipin.com/job_detail/collect-example-1.html",
+      "title": "AI应用开发工程师",
+      "company": "示例公司1",
+      "city": "上海",
+      "salary": "-K·薪",
+      "salary_plain": "18-35K·14薪",
+      "experience": "经验不限",
+      "education": "本科",
+      "company_size": "10000人以上"
+    },
+    {
+      "id": "collect-example-2",
+      "url": "https://www.zhipin.com/job_detail/collect-example-2.html",
+      "title": "AI应用开发工程师",
+      "company": "示例公司2",
+      "city": "上海",
+      "salary": "-K·薪",
+      "salary_plain": "22-25K·13薪",
+      "experience": "5-10年",
+      "education": "本科",
+      "company_size": "10000人以上"
+    }
+  ],
+  "evidence": {
+    "date": "2026-11-24",
+    "keyword": "AI应用开发",
+    "city": "上海",
+    "observed_count": 15,
+    "redacted": true
+  }
+}

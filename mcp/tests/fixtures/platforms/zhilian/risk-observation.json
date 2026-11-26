@@ -1,0 +1,11 @@
+{
+  "captured_at": "2026-11-24T06:28:17.111Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "scope": "visited chat, greeting settings, schedule, new and existing detail pages",
+  "observed_at": "2026-11-24",
+  "captcha_seen": false,
+  "frequency_limit_seen": false,
+  "setting_warning": "请不要填写手机、QQ、微信等联系方式或广告信息。",
+  "note": "No apply/send attempted; server rate limits and sensitive-content rejection unknown."
+}

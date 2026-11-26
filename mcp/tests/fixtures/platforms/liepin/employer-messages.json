@@ -1,0 +1,210 @@
+{
+  "provenance": {
+    "captured_on": "2026-11-24",
+    "browser": "Ego Lite / ego-browser nodejs",
+    "kind": "observed_react_message_props",
+    "redaction": "姓名、公司、正文、各类ID、附件姓名已替换；字段名、类型、状态、class保持。",
+    "source_artifact": "liepin-employer-messages.json",
+    "source_sha256": "33edf365e85f0f0173e923ea8924df34eea18cdea0754f7afd13a31ac4545030"
+  },
+  "contact": {
+    "company": "示例企业乙",
+    "name": "招聘者甲",
+    "id": "contact-employer-002",
+    "id_is_job_id": false
+  },
+  "items": [
+    {
+      "direction": "0",
+      "msgType": "txt",
+      "extType": 200,
+      "bizType": "1",
+      "msgTime": 1795426120000,
+      "formatTime": "昨天 17:28",
+      "type": "txt",
+      "timeContinuous": true,
+      "readflag": "1",
+      "oppositeRead": "1",
+      "msgId": "employer-001",
+      "msg": "求职过程中如遇收取培训费、考证费、中介费、押金等费用，发布虚假招聘广告信息等损害您合法权益的行为，请立即举报，了解更多安全防范知识",
+      "bizDataKeys": [
+        "clickScheme",
+        "colorful",
+        "highlightColor",
+        "highlightText",
+        "pcClickFunction"
+      ],
+      "bsDataType": "dict",
+      "domClasses": [
+        "im-ui-message-item im-ui-message-item-wrapper time-continuous consequence",
+        "im-ui-system-tip format-time"
+      ]
+    },
+    {
+      "direction": "0",
+      "msgType": "txt",
+      "extType": 1,
+      "bizType": "3",
+      "msgTime": 1795426120000,
+      "formatTime": "昨天 17:28",
+      "type": "txt",
+      "timeContinuous": true,
+      "readflag": "1",
+      "oppositeRead": "0",
+      "msgId": "employer-002",
+      "msg": "[正文已脱敏]",
+      "bizDataKeys": [],
+      "bsDataType": "str",
+      "domClasses": [
+        "im-ui-message-item im-ui-message-item-wrapper time-continuous hasAvatar consequence",
+        "im-ui-system-tip format-time",
+        "im-ui-message-item-body im-ui-message-item-send",
+        "im-ui-message-item-content-wrap",
+        "im-ui-message-item-normal-message-wrapper",
+        "im-ui-message-item-extra-info",
+        "im-ui-message-item-loadingicon im-ui-message-item-loadingicon-send hide",
+        "im-ui-message-extra-icon im-ui-message-extra-content-actions im-ui-message-extra-content-actions-receive im-ui-message-item-content-actions im-ui-message-item-content-actions-send hide",
+        "im-ui-message-read-status im-ui-message-item-opposite-readed",
+        "im-ui-message-item-extra-detail",
+        "im-ui-message-item-quote-wrap"
+      ]
+    },
+    {
+      "direction": "0",
+      "msgType": "txt",
+      "extType": 214,
+      "bizType": "2",
+      "msgTime": 1795426120000,
+      "formatTime": "昨天 17:28",
+      "type": "txt",
+      "timeContinuous": true,
+      "readflag": "1",
+      "oppositeRead": "1",
+      "msgId": "employer-003",
+      "msg": "[简历代投卡片]",
+      "bizDataKeys": [
+        "bizType",
+        "bsData",
+        "btn",
+        "content",
+        "countFlag",
+        "enumSaveStatus",
+        "iconUrl",
+        "listContent",
+        "receiverReadFlag",
+        "revokeFlag",
+        "title"
+      ],
+      "bsDataType": "dict",
+      "domClasses": [
+        "im-ui-message-item im-ui-message-item-wrapper time-continuous hasAvatar consequence",
+        "im-ui-system-tip format-time",
+        "im-ui-message-item-body im-ui-message-item-send",
+        "im-ui-message-item-content-wrap",
+        "im-ui-message-item-normal-message-wrapper",
+        "im-ui-message-item-extra-info",
+        "im-ui-message-item-loadingicon im-ui-message-item-loadingicon-send hide",
+        "im-ui-message-extra-icon im-ui-message-extra-content-actions im-ui-message-extra-content-actions-receive im-ui-message-item-content-actions im-ui-message-item-content-actions-send hide",
+        "im-ui-message-item-extra-detail",
+        "im-ui-message-item-quote-wrap"
+      ]
+    },
+    {
+      "direction": "0",
+      "msgType": "txt",
+      "extType": 1,
+      "bizType": "1",
+      "msgTime": 1795426121000,
+      "formatTime": "昨天 17:28",
+      "type": "txt",
+      "timeContinuous": true,
+      "readflag": "1",
+      "oppositeRead": "0",
+      "msgId": "employer-004",
+      "msg": "[正文已脱敏]",
+      "bizDataKeys": [],
+      "bsDataType": "str",
+      "domClasses": [
+        "im-ui-message-item im-ui-message-item-wrapper time-continuous hasAvatar consequence",
+        "im-ui-system-tip format-time",
+        "im-ui-message-item-body im-ui-message-item-send",
+        "im-ui-message-item-content-wrap",
+        "im-ui-message-item-normal-message-wrapper",
+        "im-ui-message-item-extra-info",
+        "im-ui-message-item-loadingicon im-ui-message-item-loadingicon-send hide",
+        "im-ui-message-extra-icon im-ui-message-extra-content-actions im-ui-message-extra-content-actions-receive im-ui-message-item-content-actions im-ui-message-item-content-actions-send hide",
+        "im-ui-message-read-status im-ui-message-item-opposite-readed",
+        "im-ui-message-item-extra-detail",
+        "im-ui-message-item-quote-wrap"
+      ]
+    },
+    {
+      "direction": "0",
+      "msgType": "txt",
+      "extType": 203,
+      "bizType": "7",
+      "msgTime": 1795426124000,
+      "formatTime": "昨天 17:28",
+      "type": "txt",
+      "timeContinuous": true,
+      "readflag": "1",
+      "oppositeRead": "0",
+      "msgId": "employer-005",
+      "msg": "这是我的简历，合适的话可以随时联系我～",
+      "bizDataKeys": [
+        "attachmentResume",
+        "bizType",
+        "bsData",
+        "cardTitle",
+        "countFlag",
+        "enumSaveStatus",
+        "onlineResume",
+        "receiverReadFlag",
+        "revokeFlag",
+        "title"
+      ],
+      "bsDataType": "dict",
+      "domClasses": [
+        "im-ui-message-item im-ui-message-item-wrapper time-continuous hasAvatar consequence",
+        "im-ui-system-tip format-time",
+        "im-ui-message-item-body im-ui-message-item-send",
+        "im-ui-message-item-content-wrap",
+        "im-ui-message-item-normal-message-wrapper",
+        "im-ui-message-item-extra-info",
+        "im-ui-message-item-loadingicon im-ui-message-item-loadingicon-send hide",
+        "im-ui-message-extra-icon im-ui-message-extra-content-actions im-ui-message-extra-content-actions-receive im-ui-message-item-content-actions im-ui-message-item-content-actions-send hide",
+        "im-ui-message-read-status im-ui-message-item-opposite-readed",
+        "im-ui-message-item-extra-detail",
+        "im-ui-message-item-quote-wrap"
+      ]
+    },
+    {
+      "direction": "0",
+      "msgType": "txt",
+      "extType": 200,
+      "bizType": "1",
+      "msgTime": 1795426161000,
+      "formatTime": "昨天 17:29",
+      "type": "txt",
+      "timeContinuous": true,
+      "readflag": "1",
+      "oppositeRead": "1",
+      "msgId": "employer-006",
+      "msg": "您可以修改打招呼语，去修改＞＞",
+      "bizDataKeys": [
+        "clickScheme",
+        "colorful",
+        "highlightColor",
+        "highlightText",
+        "pcClickFunction"
+      ],
+      "bsDataType": "dict",
+      "domClasses": [
+        "im-ui-message-item im-ui-message-item-wrapper time-continuous consequence",
+        "im-ui-system-tip format-time"
+      ]
+    }
+  ],
+  "human_hr_reply_verified": false,
+  "note": "雇主会话仅发件和系统消息；收件会话显示内容由AI生成，且不在两条已投记录中。"
+}

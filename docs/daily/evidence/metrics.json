@@ -1,0 +1,189 @@
+{
+  "started_at": "2026-11-25T11:36:07.204777+08:00",
+  "finished_at": "2026-11-25T11:50:24.084916+08:00",
+  "collection": {
+    "boss": {
+      "pages": 1,
+      "jobs": 15,
+      "new": 6,
+      "refreshed": 9,
+      "filtered": 0,
+      "details": 9,
+      "skipped_rows": 0,
+      "limited": true
+    },
+    "zhilian": {
+      "pages": 1,
+      "jobs": 20,
+      "new": 7,
+      "refreshed": 13,
+      "filtered": 3,
+      "details": 20,
+      "skipped_rows": 0,
+      "limited": true
+    },
+    "liepin": {
+      "pages": 1,
+      "jobs": 35,
+      "new": 18,
+      "refreshed": 17,
+      "filtered": 0,
+      "details": 14,
+      "skipped_rows": 0,
+      "error": "risk_control"
+    },
+    "51job": {
+      "pages": 1,
+      "jobs": 19,
+      "new": 2,
+      "refreshed": 17,
+      "filtered": 3,
+      "details": 16,
+      "skipped_rows": 1,
+      "error": "risk_control"
+    }
+  },
+  "new_job_coverage": [
+    {
+      "platform": "51job",
+      "new": 2,
+      "jd": 2,
+      "hr_name": 2,
+      "hr_id": 2
+    },
+    {
+      "platform": "boss",
+      "new": 6,
+      "jd": 6,
+      "hr_name": 6,
+      "hr_id": 6
+    },
+    {
+      "platform": "liepin",
+      "new": 18,
+      "jd": 0,
+      "hr_name": 0,
+      "hr_id": 0
+    },
+    {
+      "platform": "zhilian",
+      "new": 7,
+      "jd": 7,
+      "hr_name": 7,
+      "hr_id": 0
+    }
+  ],
+  "automatic_delivery": {
+    "boss": {
+      "sent": 0,
+      "failed": 1,
+      "unverified": 0,
+      "skipped": 2,
+      "pending": 0,
+      "reasons": {
+        "precheck_error": 1,
+        "30 天内已投同一公司同一 HR 同一岗位（无 HR 按公司+岗位）": 2
+      }
+    },
+    "zhilian": {
+      "sent": 0,
+      "failed": 1,
+      "unverified": 0,
+      "skipped": 2,
+      "pending": 0,
+      "reasons": {
+        "30 天内已投同一公司同一 HR 同一岗位（无 HR 按公司+岗位）": 2,
+        "precheck_error": 1
+      }
+    },
+    "liepin": {
+      "sent": 0,
+      "failed": 0,
+      "unverified": 0,
+      "skipped": 0,
+      "pending": 0,
+      "reasons": {},
+      "stop_reason": "collection_error_or_previous_batch_stop"
+    },
+    "51job": {
+      "sent": 0,
+      "failed": 0,
+      "unverified": 0,
+      "skipped": 0,
+      "pending": 0,
+      "reasons": {},
+      "stop_reason": "collection_error_or_previous_batch_stop"
+    }
+  },
+  "final_unique_delivery": [
+    {
+      "id": 23,
+      "platform": "boss",
+      "status": "skipped",
+      "reason": "job_unavailable"
+    },
+    {
+      "id": 182,
+      "platform": "boss",
+      "status": "skipped",
+      "reason": "cooldown"
+    },
+    {
+      "id": 207,
+      "platform": "boss",
+      "status": "skipped",
+      "reason": "cooldown"
+    },
+    {
+      "id": 480,
+      "platform": "zhilian",
+      "status": "skipped",
+      "reason": "cooldown"
+    },
+    {
+      "id": 491,
+      "platform": "zhilian",
+      "status": "skipped",
+      "reason": "cooldown"
+    },
+    {
+      "id": 586,
+      "platform": "zhilian",
+      "status": "skipped",
+      "reason": "cooldown"
+    }
+  ],
+  "selected_job_ids": [
+    23,
+    182,
+    207,
+    586,
+    480,
+    491
+  ],
+  "old_cutoff_id": 696,
+  "external_effect_attempts": 0,
+  "paused_platforms": {
+    "liepin": "risk_control",
+    "51job": "risk_control"
+  },
+  "core_schema_version": 3,
+  "preserved": {
+    "greeting": true,
+    "attachment_name": true,
+    "daily_limit": true,
+    "interval_seconds": true
+  },
+  "schedule": {
+    "hour": 8,
+    "minute": 0,
+    "acceptance_flags_removed": true,
+    "run_at_load": false
+  },
+  "tests": {
+    "unittest": 346,
+    "result": "passed",
+    "sdist": "passed",
+    "wheel": "passed"
+  }
+}

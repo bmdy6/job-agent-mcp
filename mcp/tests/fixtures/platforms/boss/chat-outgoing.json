@@ -1,0 +1,36 @@
+{
+  "captured_at": "2026-11-24T06:23:20.139Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "url": "https://www.zhipin.com/web/geek/chat",
+  "html": [
+    "<li role=\"listitem\" class=\"\"><div class=\"friend-content-warp\"><!--omitted--><div class=\"friend-content selected\"><div class=\"figure\"><!--omitted--><!--omitted--><!--omitted--></div><div class=\"text\"><div><span class=\"time\">11:45</span><!--omitted--><!--omitted--></div><div class=\"title-box\"><span class=\"name-box\"><span class=\"name-text\">[脱敏文本1]</span><span>[脱敏文本2]</span><i class=\"vline\"></i><span>[脱敏文本3]</span><!--omitted--></span><!--omitted--></div><div class=\"gray last-msg\"><!--omitted--><i class=\"message-status status-delivery\">[送达]</i><span class=\"last-msg-text\">[脱敏文本4]</span><div class=\"user-operation\"><!--omitted--><!--omitted--></div></div></div></div></div></li>",
+    "<div class=\"chat-conversation\"><div class=\"top-info-content\"><div class=\"user-info-wrap\"><div class=\"user-info\"><div class=\"base-info\"><div class=\"name-content\"><span class=\"name-text\">[脱敏文本5]</span><!--omitted--></div><span>[脱敏文本6]</span><!--omitted--><i class=\"vline\"></i><span class=\"base-title\">[脱敏文本7]</span><!--omitted--></div><div class=\"right-content\"><!--omitted--><!--omitted--><div class=\"ui-dropmenu-v1 ui-dropmenu\"><div class=\"ui-dropmenu-label\"><div class=\"top-operation-item\"><!--omitted-->更多</div><!--omitted--></div><div class=\"ui-dropmenu-list\"><div><ul class=\"more-setting\"><li><svg class=\"boss-svg svg-icon\"><use></use></svg><span>[脱敏文本8]</span></li><li><svg class=\"boss-svg svg-icon\"><use></use></svg><span>[脱敏文本9]</span></li><li><svg class=\"boss-svg svg-icon\"><use></use></svg><span>[脱敏文本10]</span></li><li><svg class=\"boss-svg svg-icon\"><use></use></svg><span>[脱敏文本11]</span></li><li><svg class=\"boss-svg svg-icon\"><use></use></svg><span>[脱敏文本12]</span></li><li><svg class=\"boss-svg svg-icon\"><use></use></svg><span>[脱敏文本13]</span></li></ul></div></div></div></div></div><!--omitted--></div><div class=\"chat-position-content\"><div class=\"position-main\"><div class=\"position-content\"><div class=\"left-content\"><span class=\"position-name\">[脱敏文本14]</span><span class=\"salary\">[脱敏文本15]</span><span class=\"city\">[脱敏文本16]</span></div><div class=\"right-content\"><!--omitted--><span>查看职位<i class=\"iboss-left\"></i></span></div></div></div><!--omitted--></div></div><div class=\"message-content\"><div class=\"chat-record\"><div class=\"pre-loading\"><span class=\"loading-more\"><i></i><i></i><i></i></span></div><div class=\"chat-message\"><ul class=\"im-list\"><li data-mid=\"900000000000001\" class=\"message-item item-friend\"><div class=\"item-time\"><span class=\"time\">11:44</span></div><div class=\"message-content\"><!--omitted--><div class=\"articles-center\"><div class=\"message-card-wrap blue\"><div class=\"message-card-top-wrap\"><div class=\"message-card-top-icon-content\"><!--omitted--></div><div class=\"message-card-top-content\"><h3 class=\"message-card-top-title\">你与该职位竞争者PK情况</h3><p class=\"message-card-top-sub-title\">[脱敏文本17]<!--omitted-->[脱敏文本18]<!--omitted-->[脱敏文本19]</p><p class=\"description\"><span class=\"highlight\">[脱敏文本20]<!--omitted-->[脱敏文本21]<!--omitted--></span><span class=\"extend-content\"><!--omitted--><!--omitted--><!--omitted--></span></p></div></div><div class=\"message-card-buttons\"><span class=\"card-btn one-btn\">[脱敏文本22]</span></div></div></div><!--omitted--></div><!--omitted--></li><li data-mid=\"900000000000002\" class=\"message-item item-myself\"><!--omitted--><div class=\"message-content\"><!--omitted--><div class=\"text\"><!--omitted--><i class=\"message-status status-delivery\">送达</i><p><span class=\"text-content\">[脱敏文本23]</span></p></div></div><!--omitted--></li></ul><!--omitted--></div></div><div class=\"message-tip-bar\"><!--omitted--></div></div><div class=\"message-controls\"><div class=\"chat-im chat-editor\"><div class=\"chat-controls\"><div class=\"toolbar-btn-content\"><div aria-label=\"[脱敏标签]\" class=\"icon btn-emotion tooltip tooltip-top\"></div><!--omitted--></div><div class=\"toolbar-btn-content\"><div aria-label=\"常用语\" class=\"icon btn-dict tooltip tooltip-top\"></div><!--omitted--></div><!--omitted--><div class=\"toolbar-btn-content\"><div aria-label=\"[脱敏标签]\" class=\"toolbar-btn-content icon btn-sendimg tooltip tooltip-top\"><input type=\"file\"></div></div><i class=\"vline\"></i><div class=\"toolbar-btn-content\"><div aria-label=\"[脱敏标签]\" class=\"toolbar-btn tooltip tooltip-top unable\">发简历</div><!--omitted--><div><!--omitted--><!--omitted--></div></div><div aria-label=\"[脱敏标签]\" class=\"toolbar-btn-content btn-contact toolbar-btn tooltip tooltip-top unable\">换电话<div class=\"sentence-popover panel-contact\"><p class=\"title\">[脱敏文本24]</p><div class=\"btns\"><span class=\"btn-v2 btn-outline-v2\">取消</span><span class=\"btn-v2 btn-sure-v2\">确定</span></div></div><div class=\"sentence-popover panel-contact dialog-virtual-container\"><div class=\"virtual-title\"></div><div class=\"virtual-container\"><div class=\"virtual-switch\"><!--omitted--><span>[脱敏文本25]</span><div class=\"flex-right\"><div class=\"popover popover-top\"><div><!--omitted--></div><div class=\"popover-wrap popover-dark\"><div class=\"popover-content\">[脱敏文本26]</div></div></div><label class=\"checkbox\"><span class=\"checkbox-inner\"><input type=\"checkbox\" class=\"checkbox-input\"><i class=\"checkbox-edging\"></i></span><!--omitted--></label></div></div><div class=\"virtual-content\">  </div></div><div class=\"virtual-footer\"><span class=\"virtual-cancel\">取消</span><span class=\"virtual-confirm\">确定</span></div></div></div><div class=\"toolbar-btn-content\"><div aria-label=\"[脱敏标签]\" class=\"btn-weixin toolbar-btn tooltip tooltip-top unable\">换微信</div><!--omitted--></div></div><div class=\"editor-container\"><!--omitted--><div contenteditable=\"true\" id=\"chat-input\" class=\"chat-input\"></div><div class=\"chat-op\"><span class=\"tip\">按Enter键发送，按Ctrl+Enter键换行</span><button type=\"send\" class=\"btn-v2 btn-sure-v2 btn-send disabled\">发送</button></div></div><div class=\"chat-recommend-position\"><ul class=\"position-list\"></ul><i class=\"btn-close ui-icon-close\"></i></div></div></div></div>"
+  ],
+  "facts": {
+    "messages": [
+      {
+        "id": "900000000000001",
+        "id_attribute": "data-mid",
+        "class": "message-item item-friend",
+        "has_text": false,
+        "has_card": true,
+        "time": "11:44"
+      },
+      {
+        "id": "900000000000002",
+        "id_attribute": "data-mid",
+        "class": "message-item item-myself",
+        "has_text": true,
+        "has_card": false,
+        "time": null
+      }
+    ],
+    "input": {
+      "id": "chat-input",
+      "contenteditable": "true",
+      "maxlength": null,
+      "empty": true
+    }
+  }
+}

@@ -1,0 +1,65 @@
+{
+  "provenance": {
+    "captured_on": "2026-11-24",
+    "browser": "Ego Lite / ego-browser nodejs",
+    "kind": "observed_dom",
+    "redaction": "姓名、公司、正文、各类ID、附件姓名已替换；字段名、类型、状态、class保持。",
+    "source_artifact": "liepin-unapplied-job.html",
+    "source_sha256": "1b3666a0bb7be29a042c6ba5f01ea82143de1dfc31a705953d7574b34fe07c74"
+  },
+  "canonicalPath": "/job/1990000003.shtml",
+  "controls": [
+    {
+      "tag": "a",
+      "attributes": {
+        "class": "btn-minor",
+        "data-selector": "apply-job",
+        "data-jobid": "90000003",
+        "data-jobkind": "6"
+      },
+      "text": "投简历"
+    },
+    {
+      "tag": "a",
+      "attributes": {
+        "class": "btn-main",
+        "data-selector": "chat-chat",
+        "data-jobid": "90000003",
+        "data-jobkind": "6",
+        "data-params": {
+          "jobId": "90000003",
+          "jobKind": "2",
+          "recruiterId": "[已脱敏]",
+          "imId": "[已脱敏]",
+          "imUserType": "2",
+          "recruiterName": "[已脱敏]",
+          "recruiterPhoto": "[已脱敏]",
+          "encodedUserId": "[已脱敏]",
+          "userId": "[已脱敏]"
+        }
+      },
+      "text": "聊一聊"
+    },
+    {
+      "tag": "a",
+      "attributes": {
+        "class": "btn-chat",
+        "data-selector": "chat-chat",
+        "data-jobid": "90000003",
+        "data-jobkind": "6",
+        "data-params": {
+          "jobId": "90000003",
+          "jobKind": "2",
+          "recruiterId": "[已脱敏]",
+          "imId": "[已脱敏]",
+          "imUserType": "2",
+          "recruiterName": "[已脱敏]",
+          "recruiterPhoto": "[已脱敏]",
+          "encodedUserId": "[已脱敏]",
+          "userId": "[已脱敏]"
+        }
+      },
+      "text": "聊一聊"
+    }
+  ]
+}

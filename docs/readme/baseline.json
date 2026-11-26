@@ -1,0 +1,56 @@
+{
+  "readmes": [
+    {
+      "file": "README.md",
+      "headings": [
+        "安装与启动",
+        "注册到 Codex / Claude Code",
+        "工具",
+        "测试"
+      ]
+    }
+  ],
+  "integrations": [
+    {
+      "id": "integration-en-claude-code",
+      "claim": "Tool, platform or runtime mentioned in the README",
+      "value": "Claude Code",
+      "source": "README.md:51",
+      "kind": "integration",
+      "readme": "README.md"
+    },
+    {
+      "id": "integration-en-codex",
+      "claim": "Tool, platform or runtime mentioned in the README",
+      "value": "Codex",
+      "source": "README.md:51",
+      "kind": "integration",
+      "readme": "README.md"
+    },
+    {
+      "id": "integration-en-python",
+      "claim": "Tool, platform or runtime mentioned in the README",
+      "value": "Python",
+      "source": "README.md:9",
+      "kind": "integration",
+      "readme": "README.md"
+    },
+    {
+      "id": "integration-en-jsonl",
+      "claim": "Tool, platform or runtime mentioned in the README",
+      "value": "JSONL",
+      "source": "README.md:40",
+      "kind": "integration",
+      "readme": "README.md"
+    },
+    {
+      "id": "integration-en-json",
+      "claim": "Tool, platform or runtime mentioned in the README",
+      "value": "JSON",
+      "source": "README.md:44",
+      "kind": "integration",
+      "readme": "README.md"
+    }
+  ],
+  "badges": []
+}

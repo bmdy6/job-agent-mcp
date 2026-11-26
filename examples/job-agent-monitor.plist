@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST-1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0"><dict>
+  <key>Label</key><string>com.bmdy6.job-agent-monitor</string>
+  <key>ProgramArguments</key><array>
+    <string>/ABSOLUTE/RUNTIME/.venv/bin/python</string>
+    <string>/ABSOLUTE/RUNTIME/scripts/monitor-launch.py</string>
+  </array>
+  <key>EnvironmentVariables</key><dict>
+    <key>JOB_AGENT_HOME</key><string>/ABSOLUTE/PATH/TO/.job-agent</string>
+    <key>PATH</key><string>/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <!-- Crashes/errors restart; a clean space-unavailable exit requires explicit start. -->
+  <key>KeepAlive</key><dict><key>SuccessfulExit</key><false/></dict>
+  <key>ThrottleInterval</key><integer>60</integer>
+  <key>StandardOutPath</key><string>/ABSOLUTE/PATH/TO/.job-agent/monitor.log</string>
+  <key>StandardErrorPath</key><string>/ABSOLUTE/PATH/TO/.job-agent/monitor.log</string>
+</dict></plist>

@@ -1,0 +1,53 @@
+{
+  "provenance": {
+    "captured_on": "2026-11-24",
+    "browser": "Ego Lite / ego-browser nodejs",
+    "kind": "observed_dom",
+    "redaction": "姓名、公司、正文、各类ID、附件姓名已替换；字段名、类型、状态、class保持。",
+    "source_artifact": "51job-applied.html",
+    "source_sha256": "851de298e05c1f2a56ff4662c69efdb4ab7ac0193795109fdee43515ee1621c4"
+  },
+  "url": "https://i.51job.com/userset/my_apply.php?lang=c",
+  "retentionText": "仅保留近60天的社会申请记录",
+  "filters": [
+    "全部",
+    "已查阅",
+    "感兴趣",
+    "邀面试"
+  ],
+  "rowAncestors": [
+    {
+      "tag": "a",
+      "class": "zhn gt"
+    },
+    {
+      "tag": "div",
+      "class": "li l1"
+    },
+    {
+      "tag": "div",
+      "class": "e"
+    },
+    {
+      "tag": "div",
+      "class": "apox"
+    },
+    {
+      "tag": "div",
+      "class": "exmsg"
+    }
+  ],
+  "observedRow": {
+    "jobHref": "https://jobs.51job.com/all/190000001.html?s=mysq_sq_sqlb&t=0",
+    "companyHref": "https://jobs.51job.com/all/co900001.html",
+    "title": "示例AI岗位",
+    "company": "示例企业甲",
+    "appliedAt": "2026-11-23",
+    "resumeLabel": "申请简历：我的简历1",
+    "hrBody": null,
+    "messageId": null,
+    "direction": null
+  },
+  "applicationCountBefore": 1,
+  "applicationCountAfter": 1
+}

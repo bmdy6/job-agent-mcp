@@ -1,0 +1,48 @@
+{
+  "captured_at": "2026-11-24T06:25:33.549Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "url_template": "https://www.zhaopin.com/jobdetail/<jobNumber>.html",
+  "html": [
+    "<div class=\"job-summary\"><div class=\"summary-planes\"><div class=\"summary-planes__content\"><!--omitted--> <div class=\"summary-planes__top summary-planes__top--align-title\"><!--omitted--> <h1 class=\"summary-planes__title\"><span>[脱敏文本1]</span> <!--omitted--> <!--omitted--> <!--omitted--></h1> <div class=\"summary-planes__icon\"><!--omitted--> <div class=\"summary-planes__collection summary-planes__collect\"><a>[脱敏文本2]</a></div> <div class=\"summary-planes__xiaochengxu\"><div class=\"summary-planes__qr-button\"><!--omitted--></div> <a>[脱敏文本3]</a></div> <div class=\"summary-planes__complain summary-planes__jubao\"><a>[脱敏文本4]</a></div></div></div> <div class=\"summary-planes__bottom\"><div class=\"summary-planes__left\"><span class=\"summary-planes__salary\">[脱敏文本5]</span> <ul class=\"summary-planes__info\"><li><a href=\"#fixture\" class=\"workCity-link\">[脱敏文本6]</a> <span>[脱敏文本7]</span></li> <!--omitted--> <li>[脱敏文本8]</li> <li>[脱敏文本9]</li> <!--omitted--> <!--omitted--> <!--omitted--> <!--omitted--> <!--omitted--> <!--omitted--></ul></div> <div class=\"summary-planes__right\"><!--omitted--> <div class=\"summary-planes__action\"><button type=\"button\" class=\"a-button a--bordered a--filled\">继续沟通</button></div></div></div> <!--omitted--> <!--omitted--></div></div> <!--omitted--> <!--omitted--> <!--omitted--> <div class=\"job-apply-button\"><!--omitted--></div> <!--omitted--> <!--omitted-->  </div>"
+  ],
+  "buttons": [
+    {
+      "text": "继续沟通",
+      "class": "a-button a--bordered a--filled"
+    },
+    {
+      "text": "立即举报",
+      "class": "warning-seo__report-violation"
+    },
+    {
+      "text": "",
+      "class": "warning-seo__close"
+    },
+    {
+      "text": "",
+      "class": "back-to-top"
+    },
+    {
+      "text": "",
+      "class": "banner-drawer__close"
+    },
+    {
+      "text": "",
+      "class": "deliver-greeting-modal__close"
+    },
+    {
+      "text": "留在此页",
+      "class": "deliver-greeting-modal__btn deliver-greeting-modal__btn--secondary"
+    },
+    {
+      "text": "继续沟通",
+      "class": "deliver-greeting-modal__btn deliver-greeting-modal__btn--primary"
+    },
+    {
+      "text": "",
+      "class": "banner-drawer__close"
+    }
+  ],
+  "clicked": false
+}

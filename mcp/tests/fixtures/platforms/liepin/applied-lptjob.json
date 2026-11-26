@@ -1,0 +1,55 @@
+{
+  "provenance": {
+    "captured_on": "2026-11-24",
+    "browser": "Ego Lite / ego-browser nodejs",
+    "kind": "observed_dom",
+    "redaction": "姓名、公司、正文、各类ID、附件姓名已替换；字段名、类型、状态、class保持。",
+    "source_artifact": "liepin-applied-lptjob.html",
+    "source_sha256": "eb8d498260e9800d9eafb04b0b47abd91e2c3f7cde88568589885d0e9e776758"
+  },
+  "canonicalPath": "/lptjob/90000001",
+  "controls": [
+    {
+      "tag": "a",
+      "attributes": {
+        "class": "btn-main",
+        "data-selector": "chat-chat",
+        "data-jobid": "90000001",
+        "data-jobkind": "6",
+        "data-params": {
+          "jobId": "90000001",
+          "jobKind": "6",
+          "recruiterId": "[已脱敏]",
+          "imId": "[已脱敏]",
+          "imUserType": "2",
+          "recruiterName": "[已脱敏]",
+          "recruiterPhoto": "[已脱敏]",
+          "encodedUserId": "[已脱敏]",
+          "userId": "[已脱敏]"
+        }
+      },
+      "text": "继续聊"
+    },
+    {
+      "tag": "a",
+      "attributes": {
+        "class": "btn-chat",
+        "data-selector": "chat-chat",
+        "data-jobid": "90000001",
+        "data-jobkind": "6",
+        "data-params": {
+          "jobId": "90000001",
+          "jobKind": "6",
+          "recruiterId": "[已脱敏]",
+          "imId": "[已脱敏]",
+          "imUserType": "2",
+          "recruiterName": "[已脱敏]",
+          "recruiterPhoto": "[已脱敏]",
+          "encodedUserId": "[已脱敏]",
+          "userId": "[已脱敏]"
+        }
+      },
+      "text": "继续聊"
+    }
+  ]
+}

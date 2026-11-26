@@ -1,0 +1,21 @@
+{
+  "label": "com.job-agent.daily",
+  "trigger": {
+    "Hour": 11,
+    "Minute": 36
+  },
+  "run_at_load": false,
+  "acceptance_args": [
+    "--max-per-platform",
+    "3",
+    "--collection-page-limit",
+    "1"
+  ],
+  "started_at": "2026-11-25T11:36:07.204777+08:00",
+  "old_cutoff_id": 696,
+  "launchd_observation": {
+    "runs": 1,
+    "pid": 24300,
+    "state": "running"
+  }
+}

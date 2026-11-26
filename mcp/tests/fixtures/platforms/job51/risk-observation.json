@@ -1,0 +1,17 @@
+{
+  "captured_on": "2026-11-24",
+  "sourceArtifacts": [
+    "51job-final-application-list.html",
+    "51job-resume-settings.html",
+    "51job-job-applied.html"
+  ],
+  "loggedIn": true,
+  "captchaEncountered": false,
+  "rateLimitEncountered": false,
+  "quotaTested": false,
+  "sends": 0,
+  "scope": "低频只读页面查看；没有诱发风控。",
+  "visibleNotes": [
+    "邮箱尚未验证（个人中心普通提示）"
+  ]
+}

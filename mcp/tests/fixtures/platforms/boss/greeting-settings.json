@@ -1,0 +1,25 @@
+{
+  "captured_at": "2026-11-24T06:25:33.515Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "url": "https://www.zhipin.com/web/geek/notify-set?type=greetSet",
+  "html": [
+    "<div class=\"greeting-header\"><h3 class=\"title-wrap\">[脱敏文本1]</h3><div class=\"header-content\"><div class=\"writer\"><h4>[脱敏文本2]<span class=\"ui-switch\"><input type=\"hidden\"><span class=\"ui-switch-inner\"><!--omitted--></span></span></h4><p>[脱敏文本3]</p></div></div></div>",
+    "<div class=\"dialog-container\"><div class=\"dialog-header\"><!--omitted--><h3 class=\"title\"></h3><span class=\"close\"><i class=\"icon-close\"></i></span></div><div class=\"dialog-body\"><div class=\"upload-resume__old\"><!--omitted--><p class=\"tip-drag\">[脱敏文本4]</p><p class=\"tip-filetype\">[脱敏文本5]</p><p class=\"tip-size\">[脱敏文本6]</p><div class=\"btns\"><a href=\"#fixture\" class=\"btn btn-primary btn-file\">[脱敏文本7]<input type=\"file\"></a></div><p class=\"tip-guide\">[脱敏文本8]<a href=\"#fixture\">[脱敏文本9]</a></p></div></div><!--omitted--></div>",
+    "<div class=\"dialog-container\"><div class=\"dialog-header\"><!--omitted--><h3 class=\"title\"></h3><span class=\"close\"><i class=\"icon-close\"></i></span></div><div class=\"dialog-body\"><div class=\"select-box\"><div class=\"select-one\"><div class=\"top-title\"><!--omitted--><p class=\"title\">[脱敏文本10]</p></div><p class=\"main-title\">[脱敏文本11]</p><p class=\"detail-title\">[脱敏文本12]</p></div><!--omitted--><div class=\"select-one\"><div class=\"top-title\"><!--omitted--><p class=\"title\">[脱敏文本13]</p></div><p class=\"main-title\">[脱敏文本14]</p><p class=\"detail-title\">[脱敏文本15]</p></div></div></div><div class=\"dialog-footer\"><div class=\"btns\"><!--omitted--><!--omitted--></div></div></div>",
+    "<div class=\"dialog-container\"><div class=\"dialog-header\"><!--omitted--><h3 class=\"title\">[脱敏文本16]</h3><span class=\"close\"><i class=\"icon-close\"></i></span></div><div class=\"dialog-body\"><form class=\"ui-form ui-form-label-right ui-form-asterisk\"><div class=\"item-textarea form-item\"><!--omitted--><div class=\"item-content\"><div class=\"add-edit-textarea input-wrap input-wrap-textarea\"><textarea placeholder=\"请输入\" class=\"input\"></textarea><!--omitted--><!--omitted--></div><span class=\"num\"><span class=\"\">[脱敏文本17]</span>[脱敏文本18]</span><!--omitted--></div></div></form><div class=\"btn-ops\"><a href=\"#fixture\" class=\"save fr\">保存</a><a href=\"#fixture\" class=\"cancel fr\">取消</a></div></div><div class=\"dialog-footer\"><div class=\"btns\"><!--omitted--><!--omitted--></div></div></div>"
+  ],
+  "switch": {
+    "class": "ui-switch",
+    "hidden_value": "0",
+    "props": {
+      "value": 0,
+      "trueValue": 1,
+      "falseValue": 0,
+      "disabled": false
+    },
+    "currentValue": 0,
+    "help": "启用后，将在沟通时自动发送招呼语"
+  },
+  "changed": false
+}

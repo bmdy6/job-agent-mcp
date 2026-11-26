@@ -1,0 +1,29 @@
+{
+  "provenance": {
+    "captured_on": "2026-11-24",
+    "browser": "Ego Lite",
+    "kind": "read_only_live_followup",
+    "redaction": "仅保留布尔值、计数和通用错误；岗位 ID 为占位符"
+  },
+  "sent_job_checks": [
+    {
+      "job_id": "example-sent-1",
+      "applied": true
+    }
+  ],
+  "desktop_chat_body_verified": false,
+  "reply_source_result": "未取得聊天正文、消息时间和消息 ID，明确抛错",
+  "attachment_render_schema": {
+    "source": "https://fccdn.51jobcdn.com/51job-jobs/static/js/6.1793270085109.js",
+    "kind": "loaded_official_bundle_read_only_inspection",
+    "row_selector": ".attachment_item",
+    "filename_field": "attachResumeName",
+    "id_field": "attachResumeId",
+    "selected_selector": ".radio.selected",
+    "confirmation_event": "confirm",
+    "success_field": "sendStatus",
+    "success_value": 1,
+    "note": "静态检查渲染与回调字段；未触发真实弹窗，未提交附件，不是成功申请回包"
+  },
+  "note": "实际跑过 open_job + check_applied 和 replies.fetch；未申请、未发送。"
+}

@@ -1,0 +1,36 @@
+{
+  "provenance": {
+    "captured_on": "2026-11-24",
+    "browser": "Ego Lite / ego-browser nodejs",
+    "kind": "observed_dom",
+    "redaction": "姓名、公司、正文、各类ID、附件姓名已替换；字段名、类型、状态、class保持。",
+    "source_artifact": "liepin-final-application-list.html",
+    "source_sha256": "e1424d791de341c5d4ab8a9e5f2ac659dd2f831ea29f81a3261f61fe4691fb32"
+  },
+  "url": "https://c.liepin.com/job/record/apply",
+  "countBefore": 2,
+  "countAfter": 2,
+  "filters": [
+    "全部状态",
+    "已投递",
+    "已查看",
+    "面试邀约",
+    "不合适"
+  ],
+  "items": [
+    {
+      "href": "https://www.liepin.com/lptjob/90000001",
+      "status": "已投递",
+      "time": "2026-11-24 11:02",
+      "company": "示例企业甲",
+      "title": "示例Python岗位"
+    },
+    {
+      "href": "https://www.liepin.com/job/1990000002.shtml",
+      "status": "已投递",
+      "time": "2026-11-23 17:28",
+      "company": "示例企业乙",
+      "title": "示例AI岗位"
+    }
+  ]
+}

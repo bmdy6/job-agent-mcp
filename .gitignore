@@ -1,0 +1,32 @@
+__pycache__/
+.venv/
+*.db
+data/
+.env
+resume*.md
+!resume.example.md
+*.db-*
+*.sqlite*
+activity.jsonl
+sync-log.jsonl
+config.yaml
+!config.example.yaml
+resumes/
+.job-agent/
+cookies*
+*.log
+build/
+dist/
+*.egg-info/
+
+# Private v1 user state (even if JOB_AGENT_HOME is accidentally inside the repo).
+applications.jsonl
+experience/
+companies/
+drafts.jsonl
+
+# Private notification receipts and local task handoff.
+notified.jsonl
+notified.lock
+result.md
+DONE

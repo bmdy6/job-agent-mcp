@@ -1,0 +1,39 @@
+{
+  "captured_at": "2026-11-24T06:23:50.040Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "url": "https://i.zhaopin.com/im/greeting/setting",
+  "method": "native paste Chinese BMP character 测; cancel without save",
+  "results": [
+    {
+      "attempt": 499,
+      "retained": 499,
+      "maxlength": "500",
+      "counter": "499 /500"
+    },
+    {
+      "attempt": 500,
+      "retained": 500,
+      "maxlength": "500",
+      "counter": "500 /500"
+    },
+    {
+      "attempt": 501,
+      "retained": 500,
+      "maxlength": "500",
+      "counter": "500 /500"
+    },
+    {
+      "attempt": 700,
+      "retained": 500,
+      "maxlength": "500",
+      "counter": "500 /500"
+    }
+  ],
+  "html": [
+    "<div class=\"ivu-modal-body\"><div class=\"phrase-modal__content\"><div class=\"phrase-modal__textarea\"><div class=\"zpfe-iview-input ivu-input-wrapper ivu-input-type\"><textarea placeholder=\"请不要填写手机、QQ、微信等联系方式或广告信息。\" maxlength=\"500\" class=\"ivu-input\"></textarea></div> <span class=\"phrase-modal__count\"><span class=\"\">[脱敏文本1]</span> <span>[脱敏文本2]</span></span></div> <div class=\"phrase-modal__footer\"><button type=\"button\" class=\"phrase-modal__btn phrase-modal__btn--cancel\">取消</button> <button type=\"button\" class=\"phrase-modal__btn phrase-modal__btn--ok\" disabled=\"disabled\">保存</button></div></div>   </div>",
+    "<textarea placeholder=\"请不要填写手机、QQ、微信等联系方式或广告信息。\" maxlength=\"500\" class=\"ivu-input\"></textarea>",
+    "<div class=\"ivu-modal-body\"><div class=\"delete-confirm-modal__body\"><!--omitted--> <span class=\"delete-confirm-modal__title\">[脱敏文本3]</span></div> <div class=\"delete-confirm-modal__footer\"><button type=\"button\" class=\"delete-confirm-modal__btn delete-confirm-modal__btn--cancel\">取消</button> <button type=\"button\" class=\"delete-confirm-modal__btn delete-confirm-modal__btn--ok\">确定</button></div>   </div>"
+  ],
+  "draft_empty": true
+}

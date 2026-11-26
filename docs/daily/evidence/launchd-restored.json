@@ -1,0 +1,8 @@
+{
+  "label": "com.job-agent.daily",
+  "hour": 8,
+  "minute": 0,
+  "acceptance_flags_removed": true,
+  "run_at_load": false,
+  "checked_at": "2026-11-25T12:01:13.208041+08:00"
+}

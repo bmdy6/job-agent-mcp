@@ -1,0 +1,13 @@
+{
+  "provenance": "2026-11-24 Ego Lite read-only; identities redacted",
+  "target": {
+    "company": "示例公司...",
+    "title": "示例岗位"
+  },
+  "chat": {
+    "job_id": "job-fixture-0",
+    "company": "示例公司...",
+    "title": "示例岗位",
+    "header_title": "示例岗位"
+  }
+}

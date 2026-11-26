@@ -1,0 +1,21 @@
+{
+  "captured_at": "2026-11-24T06:24:33.589Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "url_template": "https://www.zhipin.com/job_detail/<encryptJobId>.html",
+  "html": [
+    "<div class=\"job-banner\">\n            <div class=\"inner home-inner\">\n                <div class=\"job-primary detail-box\">\n                    <div class=\"info-primary\">\n                        <div class=\"job-status\"><span>[脱敏文本1]</span></div>\n                        <div class=\"name\">\n                            <h1>[脱敏文本2]</h1>\n                            <span class=\"salary\">[脱敏文本3]</span>\n                        </div>\n                        <p><a class=\"text-desc text-city\" href=\"#fixture\">[脱敏文本4]</a>        <span class=\"text-desc text-experiece\">[脱敏文本5]</span>\n<span class=\"text-desc text-degree\">[脱敏文本6]</span></p>\n                        <div class=\"job-op\">\n                            <div class=\"btn-container\">\n            <a class=\"btn btn-interest \" href=\"#fixture\">[脱敏文本7]</a>\n\n\n                <div class=\"btn btn-startchat-wrap\">\n                    <a class=\"btn btn-startchat\" href=\"#fixture\">继续沟通</a>\n                </div>\n                            </div>\n                            <div class=\"op-container\">\n                                        <a href=\"#fixture\" class=\"fl icon-resume-login\"><i class=\"icon\"></i>[脱敏文本8]</a>\n                                            <a href=\"#fixture\" class=\"fr icon-upload-login attachment-resume-upload\"><i class=\"icon\"></i>[脱敏文本9]</a>\n                            </div>\n                        </div>\n                    </div>\n        <div class=\"tag-container-new\">\n            <div class=\"tag-more\">\n                <span class=\"link-more\">[脱敏文本10]</span>\n                <div class=\"tag-all job-tags\">\n                    <span>[脱敏文本11]</span><span>[脱敏文本12]</span><span>[脱敏文本13]</span>\n                </div>\n            </div>\n            <div class=\"job-tags\">\n                <span>[脱敏文本14]</span><span>[脱敏文本15]</span><span>[脱敏文本16]</span>\n            </div>\n        </div>\n                </div>\n            </div>\n        </div>",
+    "<div class=\"job-op\">\n                            <div class=\"btn-container\">\n            <a class=\"btn btn-interest \" href=\"#fixture\">[脱敏文本17]</a>\n\n\n                <div class=\"btn btn-startchat-wrap\">\n                    <a class=\"btn btn-startchat\" href=\"#fixture\">继续沟通</a>\n                </div>\n                            </div>\n                            <div class=\"op-container\">\n                                        <a href=\"#fixture\" class=\"fl icon-resume-login\"><i class=\"icon\"></i>[脱敏文本18]</a>\n                                            <a href=\"#fixture\" class=\"fr icon-upload-login attachment-resume-upload\"><i class=\"icon\"></i>[脱敏文本19]</a>\n                            </div>\n                        </div>"
+  ],
+  "buttons": [
+    {
+      "text": "继续沟通",
+      "class": "btn btn-startchat"
+    },
+    {
+      "text": "继续沟通",
+      "class": "btn btn-startchat"
+    }
+  ],
+  "clicked": false
+}

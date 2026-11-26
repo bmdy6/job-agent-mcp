@@ -1,0 +1,20 @@
+{
+  "provenance": {
+    "captured_on": "2026-11-24",
+    "browser": "Ego Lite / ego-browser nodejs",
+    "kind": "observed_dom",
+    "redaction": "姓名、公司、正文、各类ID、附件姓名已替换；字段名、类型、状态、class保持。",
+    "source_artifact": "51job-job-applied.html",
+    "source_sha256": "8c7c1fc3af22be826155d8bfaff7146bfe406daee7c9d117250cfea220bd68b7"
+  },
+  "controls": [
+    {
+      "tag": "div",
+      "class": "apply-btn-new big disabled",
+      "text": "已投递"
+    }
+  ],
+  "initialRenderMayShow": "立即投递",
+  "settledRender": "已投递",
+  "waitForAccountState": true
+}

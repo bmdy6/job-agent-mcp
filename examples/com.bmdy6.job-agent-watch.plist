@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <key>Label</key><string>com.bmdy6.job-agent-watch</string>
+  <key>ProgramArguments</key>
+  <array>
+    <string>/ABSOLUTE/PATH/TO/uv</string>
+    <string>run</string>
+    <string>--project</string><string>/ABSOLUTE/PATH/TO/job-agent/mcp</string>
+    <string>job-agent</string><string>watch</string><string>--once</string>
+  </array>
+  <key>EnvironmentVariables</key>
+  <dict>
+    <key>JOB_AGENT_HOME</key><string>/ABSOLUTE/PATH/TO/.job-agent</string>
+  </dict>
+  <key>RunAtLoad</key><true/>
+  <key>StartInterval</key><integer>300</integer>
+  <!-- Inject channel secrets securely into the launched process. launchd does
+       not read shell profiles. Do not put token values in this public sample. -->
+</dict>
+</plist>

@@ -1,0 +1,33 @@
+{
+  "provenance": {
+    "captured_on": "2026-11-24",
+    "browser": "Ego Lite / ego-browser nodejs",
+    "kind": "observed_dom",
+    "redaction": "姓名、公司、正文、各类ID、附件姓名已替换；字段名、类型、状态、class保持。",
+    "source_artifact": "liepin-resume-edit.html",
+    "source_sha256": "4a2993e751516a3dad629f48e0d20f0aea71493f45176d7daf668d28c2964489"
+  },
+  "targetPresent": true,
+  "targetName": "候选人_AI开发_1123_v8.1.pdf",
+  "nameAncestors": [
+    {
+      "tag": "div",
+      "class": "fileName--XzM2N"
+    },
+    {
+      "tag": "div",
+      "class": "fileCon--XzM2N"
+    },
+    {
+      "tag": "div",
+      "class": "attachmentCard--XzM2N"
+    },
+    {
+      "tag": "div",
+      "class": "attachmentView--XzBkN"
+    }
+  ],
+  "applicationSelectionVerified": false,
+  "menuActions": [],
+  "note": "存在附件不等于该次投递选中；未上传、改名或删除。"
+}

@@ -1,0 +1,12 @@
+{
+  "captured_at": "2026-11-24T06:27:45.996Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "observed_via": "live #chat-input parent Vue component, method strings inspected only",
+  "MAX_PASTE_LENGTH": 1000,
+  "notes": [
+    "handlePaste compares clipboard text .length against MAX_PASTE_LENGTH",
+    "sendText has empty check and delegates to message service; server maximum NOT verified"
+  ],
+  "draft_empty": true
+}

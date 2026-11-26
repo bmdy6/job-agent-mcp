@@ -1,0 +1,55 @@
+{
+  "provenance": {
+    "captured_on": "2026-11-24",
+    "browser": "Ego Lite / ego-browser nodejs",
+    "kind": "observed_vue_state_and_read_only_method_inspection",
+    "redaction": "姓名、公司、正文、各类ID、附件姓名已替换；字段名、类型、状态、class保持。",
+    "source_artifact": "51job-apply-components.json",
+    "source_sha256": "712e529d336f04cfa4658f93809245ddd2849d7f23a50cdef44697a3e670101e"
+  },
+  "mountedBeforeApplication": {
+    "isVisible": false,
+    "cvLogIdList": [],
+    "modifyType": "add",
+    "attachmentResumeList": [],
+    "selectedAttachmentResumeId": "",
+    "defaultApplyResumeId": null,
+    "res": null,
+    "applyType": "",
+    "applyJobList": []
+  },
+  "observedCallOrder": [
+    "checkApplyIntercept: GET /open/user/apply-chat/check",
+    "applyJobFun: POST /open/user-apply/open/user-apply/light-apply-job",
+    "on status == 1: read resultbody.popupAttachResumeList.attachResumeList",
+    "read resultbody.applyJobResult.applySuccessJobList[].cvLogId",
+    "selectAttachmentResume.init(params, response, applyType, applyJobList)",
+    "onSelect: selectedAttachmentResumeId = row.attachResumeId; defaultApplyResumeId = null",
+    "onConfirm: POST /open/user-apply/open/user-apply/modify-attach-resume",
+    "emit confirm, close popup; parent shows applySuccess"
+  ],
+  "selectionReadback": [
+    "selectedAttachmentResumeId matches exactly one attachmentResumeList[].attachResumeId",
+    "matched row filename must equal configured target",
+    "defaultApplyResumeId is separate and resets onSelect",
+    "cvLogIdList comes from successful application response"
+  ],
+  "submitted": false,
+  "livePopupOpened": false,
+  "requestResponseCaptured": false,
+  "interpretation": "附件弹窗位于成功投递响应之后；初始投递请求已经是对外动作，不能为取证点击。",
+  "publicBundle": {
+    "url": "https://fccdn.51jobcdn.com/51job-jobs/static/js/6.1793270085109.js",
+    "sha256": "73252f16af085c505e87bcbf895e98f6af497651d5c52f363ba6a0a11dadd84d"
+  },
+  "applyMethodEvidence": {
+    "method": "PCApplyJob.applyJobFun",
+    "sha256": "bc7c892b3ffb2c6f0d4b7b92d3ef1f2d2af0844b46ea8dbf7ea1c49bd54d1bf0",
+    "tokenOffsets": {
+      "light-apply-job": 1473,
+      "popupAttachResumeList": 1734,
+      "cvLogId": 1898,
+      "selectAttachmentResume.init": 2008
+    }
+  }
+}

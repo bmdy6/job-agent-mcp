@@ -1,0 +1,33 @@
+{
+  "provenance": {
+    "captured_on": "2026-11-24",
+    "browser": "Ego Lite / ego-browser nodejs",
+    "kind": "observed_input_readback",
+    "redaction": "姓名、公司、正文、各类ID、附件姓名已替换；字段名、类型、状态、class保持。",
+    "source_artifact": "liepin-input-boundary.json",
+    "source_sha256": "013c0a75bfeeb889231c19b45c9cfc8c3c36ddaaf37c77ee7f1f92ae17922d13"
+  },
+  "selector": "textarea.im-ui-textarea",
+  "placeholder": "请输入文字，按Enter键发送",
+  "unit_tested": "重复BMP汉字 测；键盘insertText，不按Enter",
+  "trials": [
+    {
+      "requested": 799,
+      "actual": 799,
+      "max": null
+    },
+    {
+      "requested": 800,
+      "actual": 800,
+      "max": null
+    },
+    {
+      "requested": 801,
+      "actual": 800,
+      "max": null
+    }
+  ],
+  "cleared": true,
+  "sent": false,
+  "server_limit_tested": false
+}

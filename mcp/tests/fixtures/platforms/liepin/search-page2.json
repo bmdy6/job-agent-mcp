@@ -1,0 +1,34 @@
+{
+  "ready": true,
+  "loggedIn": true,
+  "login": false,
+  "risk": false,
+  "page": 2,
+  "empty": false,
+  "items": [
+    {
+      "id": "90000011",
+      "url": "https://www.liepin.com/job/1990000011.shtml",
+      "title": "AI应用开发工程师",
+      "company": "示例企业1",
+      "city": "上海-虹口区",
+      "salary": "300-500元/天",
+      "experience": "实习",
+      "education": "本科"
+    },
+    {
+      "id": "90000012",
+      "url": "https://www.liepin.com/job/1990000012.shtml",
+      "title": "AI应用开发工程师",
+      "company": "示例企业2",
+      "city": "上海-虹口区",
+      "salary": "300-500元/天",
+      "experience": "实习",
+      "education": "本科"
+    }
+  ],
+  "evidence": {
+    "date": "2026-11-24",
+    "kind": "live second-page projection; first 2 rows; identities replaced"
+  }
+}

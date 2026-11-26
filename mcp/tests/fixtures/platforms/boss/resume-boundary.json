@@ -1,0 +1,17 @@
+{
+  "captured_at": "2026-11-24T06:27:04.486Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "observed_via": "live toolbar Vue component methods read as strings; not invoked",
+  "facts": {
+    "handleSendResume_has_requestCheck": true,
+    "has_showDialog_branch": true,
+    "has_auto_handleConfirm_branch": true,
+    "handleConfirm_has_request_with_resumeId": true,
+    "safe_to_assume_click_only_opens_selector": false
+  },
+  "html": [
+    "<div aria-label=\"[脱敏标签]\" class=\"toolbar-btn tooltip tooltip-top\">发简历</div>"
+  ],
+  "clicked": false
+}

@@ -1,0 +1,17 @@
+{
+  "captured_on": "2026-11-24",
+  "sourceArtifacts": [
+    "liepin-final-application-list.html",
+    "liepin-unapplied-job.html",
+    "liepin-chat-second.html"
+  ],
+  "loggedIn": true,
+  "captchaEncountered": false,
+  "rateLimitEncountered": false,
+  "quotaTested": false,
+  "sends": 0,
+  "scope": "低频只读页面查看；没有诱发风控。",
+  "visibleNotes": [
+    "求职过程中收费、押金等安全提醒（普通提示，非账号风控）"
+  ]
+}

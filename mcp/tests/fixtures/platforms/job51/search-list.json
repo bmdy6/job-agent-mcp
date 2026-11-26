@@ -1,0 +1,37 @@
+{
+  "url": "https://we.51job.com/pc/search",
+  "ready": true,
+  "loggedIn": true,
+  "risk": false,
+  "page": 1,
+  "empty": false,
+  "total": 1000,
+  "items": [
+    {
+      "id": "90000001",
+      "url": "https://jobs.51job.com/shanghai-fxq/90000001.html",
+      "title": "AI应用开发工程师",
+      "company": "示例企业1",
+      "city": "上海·奉贤区",
+      "salary": "1.2-1.8万",
+      "experience": "1年及以上",
+      "education": "本科"
+    },
+    {
+      "id": "90000002",
+      "url": "https://jobs.51job.com/shanghai-fxq/90000002.html",
+      "title": "AI应用开发工程师",
+      "company": "示例企业2",
+      "city": "上海·长宁区",
+      "salary": "1-1.5万·13薪",
+      "experience": "1年及以上",
+      "education": "硕士"
+    }
+  ],
+  "evidence": {
+    "date": "2026-11-24",
+    "query": "AI应用开发 / 上海",
+    "kind": "live DOM projection; identities replaced; first 2 rows",
+    "source_page": 1
+  }
+}

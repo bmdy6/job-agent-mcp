@@ -1,0 +1,27 @@
+[project]
+name = "job-agent-mcp"
+version = "0.1.0"
+description = "Local job-agent MCP with owned collection, scoring, delivery and monitoring."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["mcp>=1.12,<2", "PyYAML>=6,<7", "pypdf>=5,<7", "python-docx>=1.2,<2"]
+
+[project.scripts]
+job-agent = "cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+
+py-modules = ["server", "config", "activity", "requirements", "user_data", "applications", "v1", "analytics", "delivery", "issue6", "notify", "watch", "cli", "delivery_summary", "daily_config", "scoring_config"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["store*", "engine*", "browser*", "platforms*", "monitor*", "service*", "collect*"]
+exclude = ["tests*"]
+
+[tool.setuptools.package-data]
+browser = ["humanize.js"]
+service = ["prompts/*.txt"]

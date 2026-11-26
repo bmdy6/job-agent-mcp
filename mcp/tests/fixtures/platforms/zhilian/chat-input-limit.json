@@ -1,0 +1,41 @@
+{
+  "captured_at": "2026-11-24T06:23:51.255Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "before": {
+    "draft": "",
+    "count": 2
+  },
+  "results": [
+    {
+      "attempt": 500,
+      "retained": 500,
+      "tail": "发简历\n换微信\n按Enter键发送\n发送"
+    },
+    {
+      "attempt": 501,
+      "retained": 501,
+      "tail": "发简历\n换微信\n按Enter键发送\n发送"
+    },
+    {
+      "attempt": 1000,
+      "retained": 1000,
+      "tail": "发简历\n换微信\n按Enter键发送\n发送"
+    },
+    {
+      "attempt": 1001,
+      "retained": 1001,
+      "tail": "发简历\n换微信\n按Enter键发送\n发送"
+    },
+    {
+      "attempt": 2000,
+      "retained": 2000,
+      "tail": "发简历\n换微信\n按Enter键发送\n发送"
+    }
+  ],
+  "after": {
+    "empty": true,
+    "count": 2
+  },
+  "note": "not submitted; this chat textarea differs from saved greeting 500 cap"
+}

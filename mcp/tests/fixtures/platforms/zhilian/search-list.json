@@ -1,0 +1,37 @@
+{
+  "risk": false,
+  "login_required": false,
+  "ready": true,
+  "has_more": true,
+  "rows": [
+    {
+      "id": "collect-example-1",
+      "url": "https://www.zhaopin.com/jobdetail/collect-example-1.htm",
+      "title": "AI应用开发工程师",
+      "company": "示例公司1",
+      "city": "上海",
+      "salary": "1.2-1.5万",
+      "experience": "经验不限",
+      "education": "本科",
+      "company_size": "1000-9999人"
+    },
+    {
+      "id": "collect-example-2",
+      "url": "https://www.zhaopin.com/jobdetail/collect-example-2.htm",
+      "title": "AI应用开发工程师",
+      "company": "示例公司2",
+      "city": "上海",
+      "salary": "1.4-2万",
+      "experience": "1-3年",
+      "education": "大专",
+      "company_size": "20-99人"
+    }
+  ],
+  "evidence": {
+    "date": "2026-11-24",
+    "keyword": "AI应用开发",
+    "city": "上海",
+    "observed_count": 20,
+    "redacted": true
+  }
+}

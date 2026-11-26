@@ -1,0 +1,20 @@
+[
+  {
+    "claim": "投递回执状态机保留原因码，结果不明记为 `unverified`，停止该平台剩余投递，不自动重投。",
+    "factIds": [
+      "risk"
+    ]
+  },
+  {
+    "claim": "拟人输入结合频率控制，遇到验证码或风控暂停平台，由用户处理后显式恢复。",
+    "factIds": [
+      "gesture"
+    ]
+  },
+  {
+    "claim": "每日任务与监听统一部署到 `runtime/current`，支持回滚，数据库变更通过 `schema_migrations`。",
+    "factIds": [
+      "deploy"
+    ]
+  }
+]

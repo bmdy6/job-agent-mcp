@@ -1,0 +1,18 @@
+{
+  "captured_at": "2026-11-24T06:27:46.007Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "observed_via": "live .im-send-resume-nav Vue component methods, strings inspected only",
+  "facts": {
+    "does_checkSendResumeIntercept": true,
+    "does_openSendResume": true,
+    "has_onSuccess_callback": true,
+    "remaining_selector_flow_unverified": true
+  },
+  "clicked": false,
+  "chat_onSend": {
+    "uses_trimmed_draft": true,
+    "calls_sendText": true,
+    "literal_maximum_check_observed": false
+  }
+}

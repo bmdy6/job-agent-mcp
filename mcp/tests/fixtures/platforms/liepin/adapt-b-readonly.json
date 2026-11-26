@@ -1,0 +1,22 @@
+{
+  "provenance": {
+    "captured_on": "2026-11-24",
+    "browser": "Ego Lite",
+    "kind": "read_only_live_followup",
+    "redaction": "仅保留布尔值、计数和通用错误；岗位 ID 为占位符"
+  },
+  "sent_job_checks": [
+    {
+      "job_id": "example-sent-1",
+      "applied": true
+    },
+    {
+      "job_id": "example-sent-2",
+      "applied": true
+    }
+  ],
+  "human_hr_reply_verified": false,
+  "employer_incoming_text_observed": false,
+  "reply_source_result": "收件缺少唯一岗位映射时抛错；不冒充空收件箱",
+  "note": "实际访问了两个已投雇主会话；只有发件和系统卡。未发送、未申请。"
+}

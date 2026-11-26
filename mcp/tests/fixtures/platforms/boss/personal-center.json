@@ -1,0 +1,11 @@
+{
+  "captured_at": "2026-11-24T06:24:18.786Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "url": "https://www.zhipin.com/web/geek/recommend",
+  "html": [
+    "<ul class=\"annex-list\"><div class=\"resume-type-title\">[脱敏文本1]</div><li><div class=\"annex-item\"><!--omitted--><a href=\"#fixture\" class=\"annex-item-operate\"><ul class=\"annex-operate-list\"><li>[脱敏文本2]</li><li><a href=\"#fixture\" type=\"download\" class=\"load-btn\">[脱敏文本3]</a></li><li>[脱敏文本4]</li><li>[脱敏文本5]</li><!--omitted--><li>[脱敏文本6]</li><li class=\"annex-operate-delete\">[脱敏文本7]</li></ul></a><div class=\"annex-content\"><div class=\"basis\"><a href=\"#fixture\">[脱敏文本8]</a><span class=\"warning-tag\">[脱敏文本9]</span></div><div class=\"desc\">[脱敏文本10]</div></div></div></li><!--omitted--><!--omitted--></ul>",
+    "<div class=\"annex-item\"><!--omitted--><a href=\"#fixture\" class=\"annex-item-operate\"><ul class=\"annex-operate-list\"><li>[脱敏文本11]</li><li><a href=\"#fixture\" type=\"download\" class=\"load-btn\">[脱敏文本12]</a></li><li>[脱敏文本13]</li><li>[脱敏文本14]</li><!--omitted--><li>[脱敏文本15]</li><li class=\"annex-operate-delete\">[脱敏文本16]</li></ul></a><div class=\"annex-content\"><div class=\"basis\"><a href=\"#fixture\">[脱敏文本17]</a><span class=\"warning-tag\">[脱敏文本18]</span></div><div class=\"desc\">[脱敏文本19]</div></div></div>"
+  ],
+  "attachment_name_matches_requested": true
+}

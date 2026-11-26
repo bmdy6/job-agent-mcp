@@ -1,0 +1,17 @@
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"><style>table{width:100%;border-collapse:collapse}th{text-align:left;font-weight:500;color:var(--mute);font-size:15px;padding:12px 16px;border-bottom:1px solid var(--line)}td{border-bottom:1px solid var(--line);padding:18px 16px}tr:last-child td{border-bottom:0}.p{font-weight:600;font-size:18px}.v{display:grid;grid-template-columns:70px 90px 1fr 80px;gap:12px;padding:12px 0;border-top:1px solid var(--line)}</style></head><body>
+<header><div class='logo'>job<span>·</span>agent</div><a>总览</a><a>JD 洞察</a><a class='on'>简历与同步</a><span class='ro'>只读看板 · 数据来自 MCP</span></header>
+<h1>四个平台用的是哪一版简历</h1><div class="lead">当前主简历 v4 · 写入由 Agent 用 platform-sync 完成，写完回读核对</div>
+<div class="card" style="padding:8px 12px;margin-bottom:24px"><table><tr><th>平台</th><th>附件</th><th>在线资料</th><th>状态</th><th>说明</th></tr>
+<tr><td class="p">BOSS 直聘</td><td>v4</td><td>v4 · 5/5 项一致</td><td><span class="tag acc">已回读</span></td><td class="mute">11-18 14:02</td></tr>
+<tr><td class="p">猎聘</td><td>v4</td><td>v4 · 5/5 项一致</td><td><span class="tag acc">已回读</span></td><td class="mute">11-18 14:20</td></tr>
+<tr><td class="p">智联招聘</td><td>v4</td><td>v3</td><td><span class="tag warn">部分完成</span></td><td class="mute">导入会重复一段项目经历，等你决定</td></tr>
+<tr><td class="p">前程无忧</td><td>v3</td><td>v3</td><td><span class="tag">需登录</span></td><td class="mute">遇到验证码，登录后让 Agent 继续</td></tr>
+</table></div>
+<div class="card"><h2>版本记录</h2>
+<div class="v"><b>v4</b><span class="mono mute">11-18</span><span>按 186 份 JD 扩写 3 处：Agent 编排、RAG、Prompt 评测</span><span><span class="tag acc">当前</span></span></div>
+<div class="v"><b>v3</b><span class="mono mute">11-13</span><span>两页优化版</span><span></span></div>
+<div class="v"><b>v2</b><span class="mono mute">11-10</span><span>补作品集链接</span><span></span></div>
+<div class="v"><b>v1</b><span class="mono mute">11-08</span><span>初版</span><span></span></div>
+<div class="mute" style="font-size:15px;margin-top:12px">简历正文和改动对比在 Agent 对话里看；文件在 resumes/ 目录，可以用 git 对比。</div></div>
+<div class="foot">这里只展示。要做什么，直接在 Claude 或 Codex 的终端里说，比如：<b>“采集杭州新发的岗位”</b> · <b>“按最新 JD 汇总扩写我的简历”</b> · <b>“把 v4 同步到四个平台”</b></div>
+</body></html>

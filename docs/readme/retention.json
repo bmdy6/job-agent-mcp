@@ -1,0 +1,25 @@
+{
+  "moves": [
+    {
+      "file": "README.md",
+      "heading": "安装与启动",
+      "to": "README.md#安装与启动"
+    },
+    {
+      "file": "README.md",
+      "heading": "注册到 Codex / Claude Code",
+      "to": "docs/usage.md#注册到-codex--claude-code"
+    },
+    {
+      "file": "README.md",
+      "heading": "工具",
+      "to": "docs/usage.md#工具"
+    },
+    {
+      "file": "README.md",
+      "heading": "测试",
+      "to": "README.md#测试"
+    }
+  ],
+  "intentionalDeletions": []
+}

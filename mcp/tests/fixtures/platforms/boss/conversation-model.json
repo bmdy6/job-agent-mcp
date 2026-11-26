@@ -1,0 +1,101 @@
+{
+  "captured_at": "2026-11-24T06:26:25.095Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "url": "https://www.zhipin.com/web/geek/chat",
+  "observed_via": "Vue virtual list item $props.source, first 4 rows; values pseudonymized",
+  "rows": [
+    {
+      "name": "招聘者0",
+      "brandName": "示例公司0",
+      "jobName": "示例岗位0",
+      "encryptBossId": "boss-fixture-0",
+      "encryptJobId": "job-fixture-0",
+      "jobId": 90000,
+      "friendId": 91000,
+      "uid": 92000,
+      "uniqueId": "conversation-fixture-0",
+      "lastText": "[脱敏消息]",
+      "lastMsgId": "message-fixture-0",
+      "lastIsSelf": false,
+      "lastTS": 1795480000000,
+      "lastMsgStatus": 0,
+      "unreadCount": 1,
+      "live_types": {
+        "jobId": "number",
+        "encryptJobId": "string",
+        "lastTS": "number",
+        "lastIsSelf": "boolean"
+      }
+    },
+    {
+      "name": "招聘者1",
+      "brandName": "示例公司1",
+      "jobName": "示例岗位1",
+      "encryptBossId": "boss-fixture-1",
+      "encryptJobId": "job-fixture-1",
+      "jobId": 90001,
+      "friendId": 91001,
+      "uid": 92001,
+      "uniqueId": "conversation-fixture-1",
+      "lastText": "[脱敏消息]",
+      "lastMsgId": "message-fixture-1",
+      "lastIsSelf": false,
+      "lastTS": 1795480000001,
+      "lastMsgStatus": 0,
+      "unreadCount": 0,
+      "live_types": {
+        "jobId": "number",
+        "encryptJobId": "string",
+        "lastTS": "number",
+        "lastIsSelf": "boolean"
+      }
+    },
+    {
+      "name": "招聘者2",
+      "brandName": "示例公司2",
+      "jobName": "示例岗位2",
+      "encryptBossId": "boss-fixture-2",
+      "encryptJobId": "job-fixture-2",
+      "jobId": 90002,
+      "friendId": 91002,
+      "uid": 92002,
+      "uniqueId": "conversation-fixture-2",
+      "lastText": "[脱敏消息]",
+      "lastMsgId": "message-fixture-2",
+      "lastIsSelf": true,
+      "lastTS": 1795480000002,
+      "lastMsgStatus": 1,
+      "unreadCount": 0,
+      "live_types": {
+        "jobId": "number",
+        "encryptJobId": "string",
+        "lastTS": "number",
+        "lastIsSelf": "boolean"
+      }
+    },
+    {
+      "name": "招聘者3",
+      "brandName": "示例公司3",
+      "jobName": "示例岗位3",
+      "encryptBossId": "boss-fixture-3",
+      "encryptJobId": "job-fixture-3",
+      "jobId": 90003,
+      "friendId": 91003,
+      "uid": 92003,
+      "uniqueId": "conversation-fixture-3",
+      "lastText": "[脱敏消息]",
+      "lastMsgId": "message-fixture-3",
+      "lastIsSelf": true,
+      "lastTS": 1795480000003,
+      "lastMsgStatus": 2,
+      "unreadCount": 0,
+      "live_types": {
+        "jobId": "number",
+        "encryptJobId": "string",
+        "lastTS": "number",
+        "lastIsSelf": "boolean"
+      }
+    }
+  ]
+}

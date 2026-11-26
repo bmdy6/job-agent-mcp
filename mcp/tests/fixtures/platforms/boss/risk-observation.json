@@ -1,0 +1,11 @@
+{
+  "captured_at": "2026-11-24T06:28:17.111Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "scope": "visited chat, notify settings, new and existing detail pages",
+  "observed_at": "2026-11-24",
+  "captcha_seen": false,
+  "frequency_limit_seen": false,
+  "paste_length_warning_seen": "您粘贴的内容过长",
+  "note": "Not a frequency stress test. No claim about server thresholds."
+}

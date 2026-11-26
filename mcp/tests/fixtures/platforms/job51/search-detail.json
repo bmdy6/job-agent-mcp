@@ -1,0 +1,12 @@
+{
+  "ready": true,
+  "loggedIn": true,
+  "login": false,
+  "risk": false,
+  "id": "90000001",
+  "jd": "【需上海现场面试】\n1、参与AI应用相关产品开发迭代；，协助完成产品功能从需求到落地\n2、参与Agent、Prompt、RAG、MCP、工作流开发与优化；\n3、使用Codex、Claude Code等AI工具辅助开发；\n4、负责模型调用、接口联调、数据处理及简单前后端开发；\n5、对接客户需求，协助方案落地，并做测试、排查与数据清洗。\n【任职要求】\n1、本科及以上，计算机/软件/AI相关专业优先；\n2、熟悉Python/Java/JS/TS；\n3、熟悉Prompt、Agent、RAG、MCP、Function Calling；\n4、熟悉Codex、Claude Code 等 AI Coding 工具；\n5、沟通表达好，逻辑强，能主动对接客户\n6. 对 CRM、ERP、内部 Wiki、结构化数据、权限管理和工作流有自己的理解\n可以提供人才公寓单人宿舍",
+  "evidence": {
+    "date": "2026-11-24",
+    "kind": "live DOM projection; ID replaced; complete JD"
+  }
+}

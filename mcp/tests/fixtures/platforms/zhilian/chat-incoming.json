@@ -1,0 +1,311 @@
+{
+  "captured_at": "2026-11-24T06:26:25.113Z",
+  "source": "Ego Lite live DOM, read-only recon A",
+  "redaction": "All personal/company/message text replaced; identifiers surrogate; class names and structure retained.",
+  "url": "https://i.zhaopin.com/im?refcode=4034&sessionId=abd43e5b4ac59073e0d7efe05c8ba8a5",
+  "html": [
+    "<div class=\"im-session-item is-active\"><!--omitted--> <div class=\"im-session-item__avatar-wrap\"><!--omitted--> <i aria-label=\"[脱敏标签]\" class=\"im-session-item__online\"></i> <!--omitted--></div> <div class=\"im-session-item__body\"><div class=\"im-session-item__row\"><div class=\"im-session-item__title\"><span class=\"im-session-item__name\">[脱敏文本1]</span> <div class=\"im-session-item__company\"><span class=\"im-session-item__company-name\">[脱敏文本2]</span> <span class=\"im-session-item__sep\">[脱敏文本3]</span> <span class=\"im-session-item__job\">[脱敏文本4]</span></div></div> <div class=\"im-session-item__tail\"><div class=\"im-session-item__salary\">[脱敏文本5]</div> <a href=\"#fixture\" class=\"im-session-item__action\"></a></div></div> <div class=\"im-session-item__preview-row\"><div class=\"im-session-item__preview\"><!--omitted--> <span class=\"im-session-item__preview-text im-session-item__preview-text--muted\">[脱敏文本6]</span></div> <div class=\"im-session-item__time\">10:41</div></div></div></div>",
+    "<div class=\"im-main-panel__timeline\"><div class=\"im-main-panel__timeline-inner\"><div class=\"im-main-panel__history-tip is-ending\"><span class=\"im-main-panel__ending-text\">[脱敏文本7]</span></div> <div class=\"im-message\"><div class=\"im-message__time\">[脱敏文本8]</div> <div class=\"im-message__bubble\"><div class=\"im-message__bubble-avatar-wrap\"><!--omitted--></div> <div class=\"im-message__name-wrapper\"><div class=\"im-message__bubble-inner-wrap\"><div class=\"im-message__bubble-inner\"><div class=\"im-message\"><div class=\"im-msg-rich\">[脱敏文本9]</div></div></div> <!--omitted--></div> <!--omitted--></div> <span class=\"im-message__bubble-gap\"></span></div></div><div class=\"im-message im-message--custom\"><!--omitted--> <div class=\"im-message__bubble im-message__bubble--plain im-message__bubble--hide-arrow\"><div class=\"im-message__bubble-avatar-wrap\"><!--omitted--></div> <div class=\"im-message__name-wrapper\"><div class=\"im-message__bubble-inner-wrap\"><div class=\"im-message__bubble-inner\"><div class=\"im-message\"><div class=\"im-msg-11-wrap\"><div class=\"im-msg-11\"><div class=\"im-msg-11__content\"><!--omitted--> <div class=\"im-msg-11__title\">[脱敏文本10]</div></div> <div class=\"im-msg-11__action\"><button type=\"button\" class=\"im-msg-11__btn im-msg-11__btn--refuse\">[脱敏文本11]</button> <button type=\"button\" class=\"im-msg-11__btn im-msg-11__btn--agree\">[脱敏文本12]</button></div></div> </div></div></div> <!--omitted--></div> <!--omitted--></div> <span class=\"im-message__bubble-gap\"></span></div></div><div class=\"im-message im-message--tip\"><div class=\"im-message__time\">[脱敏文本13]</div> <div class=\"im-message__toast\"><div class=\"im-message__toast-inner\"><div class=\"im-message im-message--tip\"><div class=\"im-msg-fallback\"><div class=\"im-msg-fallback__inner im-msg-336-fallback\"><span>[脱敏文本14]</span></div></div></div></div></div></div><div class=\"im-message im-message--tip\"><!--omitted--> <div class=\"im-message__toast\"><div class=\"im-message__toast-inner\"><div class=\"im-message im-message--tip\"><div class=\"im-msg-177-tip\"><span>[脱敏文本15]</span> <a href=\"#fixture\" class=\"im-msg-177-tip__action\">[脱敏文本16]</a></div></div></div></div></div><div class=\"im-message\"><div class=\"im-message__time\">10:41</div> <div class=\"im-message__bubble\"><div class=\"im-message__bubble-avatar-wrap\"><!--omitted--></div> <div class=\"im-message__name-wrapper\"><div class=\"im-message__bubble-inner-wrap\"><div class=\"im-message__bubble-inner\"><div class=\"im-message\"><div class=\"im-msg-text\" card-type=\"text\">[脱敏文本17]</div></div></div> <!--omitted--></div> <!--omitted--></div> <span class=\"im-message__bubble-gap\"></span></div></div></div></div>"
+  ],
+  "observed_via": "nested .im-message Vue props; duplicate roots deliberately retain the SAME surrogate message id",
+  "messages": [
+    {
+      "msg": {
+        "id": "client-fixture-0",
+        "idClient": "client-fixture-0",
+        "idServer": "server-fixture-0",
+        "sendMessageId": "send-fixture-0",
+        "flow": "in",
+        "fromMe": false,
+        "time": 1795484100000,
+        "type": "custom",
+        "cardType": "131",
+        "body": "[脱敏消息]",
+        "content": {
+          "greetingText": "[脱敏值]"
+        },
+        "sendState": "success"
+      },
+      "session": {
+        "sessionId": "session-fixture-b",
+        "jobNumber": "CC000000000J00000000001",
+        "companyName": "示例公司乙",
+        "jobTitle": "示例岗位乙",
+        "selfReply": 1,
+        "oppositeReply": 1
+      }
+    },
+    {
+      "msg": {
+        "id": "client-fixture-0",
+        "idClient": "client-fixture-0",
+        "idServer": "server-fixture-0",
+        "sendMessageId": "send-fixture-0",
+        "flow": "in",
+        "fromMe": false,
+        "time": 1795484100000,
+        "type": "custom",
+        "cardType": "131",
+        "body": "[脱敏消息]",
+        "content": {
+          "greetingText": "[脱敏值]"
+        },
+        "sendState": "success"
+      },
+      "session": {
+        "sessionId": "session-fixture-b",
+        "jobNumber": "CC000000000J00000000001",
+        "companyName": "示例公司乙",
+        "jobTitle": "示例岗位乙",
+        "selfReply": 1,
+        "oppositeReply": 1
+      }
+    },
+    {
+      "msg": {
+        "id": "client-fixture-1",
+        "idClient": "client-fixture-1",
+        "idServer": "server-fixture-1",
+        "sendMessageId": "send-fixture-1",
+        "flow": "in",
+        "fromMe": false,
+        "time": 1795484100001,
+        "type": "custom",
+        "cardType": "11",
+        "body": "[脱敏消息]",
+        "content": {
+          "userDisplayGary": "[脱敏值]",
+          "listLabel": "[脱敏值]",
+          "systemAskForContact": "[脱敏值]",
+          "referType": "[脱敏值]",
+          "brightPointsGrayType": "[脱敏值]"
+        },
+        "sendState": "success"
+      },
+      "session": {
+        "sessionId": "session-fixture-b",
+        "jobNumber": "CC000000000J00000000001",
+        "companyName": "示例公司乙",
+        "jobTitle": "示例岗位乙",
+        "selfReply": 1,
+        "oppositeReply": 1
+      }
+    },
+    {
+      "msg": {
+        "id": "client-fixture-1",
+        "idClient": "client-fixture-1",
+        "idServer": "server-fixture-1",
+        "sendMessageId": "send-fixture-1",
+        "flow": "in",
+        "fromMe": false,
+        "time": 1795484100001,
+        "type": "custom",
+        "cardType": "11",
+        "body": "[脱敏消息]",
+        "content": {
+          "userDisplayGary": "[脱敏值]",
+          "listLabel": "[脱敏值]",
+          "systemAskForContact": "[脱敏值]",
+          "referType": "[脱敏值]",
+          "brightPointsGrayType": "[脱敏值]"
+        },
+        "sendState": "success"
+      },
+      "session": {
+        "sessionId": "session-fixture-b",
+        "jobNumber": "CC000000000J00000000001",
+        "companyName": "示例公司乙",
+        "jobTitle": "示例岗位乙",
+        "selfReply": 1,
+        "oppositeReply": 1
+      }
+    },
+    {
+      "msg": {
+        "id": "client-fixture-2",
+        "idClient": "client-fixture-2",
+        "idServer": "server-fixture-2",
+        "sendMessageId": "send-fixture-2",
+        "flow": "in",
+        "fromMe": false,
+        "time": 1795484100002,
+        "type": "custom",
+        "cardType": "336",
+        "body": "[脱敏消息]",
+        "content": {
+          "linkUrl": "[脱敏值]",
+          "iconUrl": "[脱敏值]",
+          "businessType": "[脱敏值]",
+          "title": "[脱敏值]",
+          "content": "[脱敏值]"
+        },
+        "sendState": "success"
+      },
+      "session": {
+        "sessionId": "session-fixture-b",
+        "jobNumber": "CC000000000J00000000001",
+        "companyName": "示例公司乙",
+        "jobTitle": "示例岗位乙",
+        "selfReply": 1,
+        "oppositeReply": 1
+      }
+    },
+    {
+      "msg": {
+        "id": "client-fixture-2",
+        "idClient": "client-fixture-2",
+        "idServer": "server-fixture-2",
+        "sendMessageId": "send-fixture-2",
+        "flow": "in",
+        "fromMe": false,
+        "time": 1795484100002,
+        "type": "custom",
+        "cardType": "336",
+        "body": "[脱敏消息]",
+        "content": {
+          "linkUrl": "[脱敏值]",
+          "iconUrl": "[脱敏值]",
+          "businessType": "[脱敏值]",
+          "title": "[脱敏值]",
+          "content": "[脱敏值]"
+        },
+        "sendState": "success"
+      },
+      "session": {
+        "sessionId": "session-fixture-b",
+        "jobNumber": "CC000000000J00000000001",
+        "companyName": "示例公司乙",
+        "jobTitle": "示例岗位乙",
+        "selfReply": 1,
+        "oppositeReply": 1
+      }
+    },
+    {
+      "msg": {
+        "id": "client-fixture-3",
+        "idClient": "client-fixture-3",
+        "idServer": "server-fixture-3",
+        "sendMessageId": "send-fixture-3",
+        "flow": "out",
+        "fromMe": true,
+        "time": 1795484100003,
+        "type": "custom",
+        "cardType": "177",
+        "body": "[脱敏消息]",
+        "content": {
+          "operationScene": "[脱敏值]",
+          "decryptedResumeNumber": "[脱敏值]",
+          "attachmentType": "[脱敏值]",
+          "language": "[脱敏值]",
+          "operationSceneV2": "[脱敏值]",
+          "rootOrgId": "[脱敏值]",
+          "attachmentIdText": "[脱敏值]",
+          "content": "[脱敏值]",
+          "scene": "[脱敏值]",
+          "attachmentTitle": "[脱敏值]",
+          "attachmentId": "[脱敏值]",
+          "resumeNumber": "[脱敏值]",
+          "jobNumber": "[脱敏值]",
+          "staffId": "[脱敏值]"
+        },
+        "sendState": "success"
+      },
+      "session": {
+        "sessionId": "session-fixture-b",
+        "jobNumber": "CC000000000J00000000001",
+        "companyName": "示例公司乙",
+        "jobTitle": "示例岗位乙",
+        "selfReply": 1,
+        "oppositeReply": 1
+      }
+    },
+    {
+      "msg": {
+        "id": "client-fixture-3",
+        "idClient": "client-fixture-3",
+        "idServer": "server-fixture-3",
+        "sendMessageId": "send-fixture-3",
+        "flow": "out",
+        "fromMe": true,
+        "time": 1795484100003,
+        "type": "custom",
+        "cardType": "177",
+        "body": "[脱敏消息]",
+        "content": {
+          "operationScene": "[脱敏值]",
+          "decryptedResumeNumber": "[脱敏值]",
+          "attachmentType": "[脱敏值]",
+          "language": "[脱敏值]",
+          "operationSceneV2": "[脱敏值]",
+          "rootOrgId": "[脱敏值]",
+          "attachmentIdText": "[脱敏值]",
+          "content": "[脱敏值]",
+          "scene": "[脱敏值]",
+          "attachmentTitle": "[脱敏值]",
+          "attachmentId": "[脱敏值]",
+          "resumeNumber": "[脱敏值]",
+          "jobNumber": "[脱敏值]",
+          "staffId": "[脱敏值]"
+        },
+        "sendState": "success"
+      },
+      "session": {
+        "sessionId": "session-fixture-b",
+        "jobNumber": "CC000000000J00000000001",
+        "companyName": "示例公司乙",
+        "jobTitle": "示例岗位乙",
+        "selfReply": 1,
+        "oppositeReply": 1
+      }
+    },
+    {
+      "msg": {
+        "id": "client-fixture-4",
+        "idClient": "client-fixture-4",
+        "idServer": "server-fixture-4",
+        "sendMessageId": "send-fixture-4",
+        "flow": "in",
+        "fromMe": false,
+        "time": 1795484100004,
+        "type": "text",
+        "cardType": null,
+        "body": "[脱敏消息]",
+        "content": "[脱敏消息]",
+        "sendState": "success"
+      },
+      "session": {
+        "sessionId": "session-fixture-b",
+        "jobNumber": "CC000000000J00000000001",
+        "companyName": "示例公司乙",
+        "jobTitle": "示例岗位乙",
+        "selfReply": 1,
+        "oppositeReply": 1
+      }
+    },
+    {
+      "msg": {
+        "id": "client-fixture-4",
+        "idClient": "client-fixture-4",
+        "idServer": "server-fixture-4",
+        "sendMessageId": "send-fixture-4",
+        "flow": "in",
+        "fromMe": false,
+        "time": 1795484100004,
+        "type": "text",
+        "cardType": null,
+        "body": "[脱敏消息]",
+        "content": "[脱敏消息]",
+        "sendState": "success"
+      },
+      "session": {
+        "sessionId": "session-fixture-b",
+        "jobNumber": "CC000000000J00000000001",
+        "companyName": "示例公司乙",
+        "jobTitle": "示例岗位乙",
+        "selfReply": 1,
+        "oppositeReply": 1
+      }
+    }
+  ]
+}
