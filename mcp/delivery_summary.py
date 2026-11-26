@@ -1,23 +1,8 @@
-"""Format user-only delivery summaries from read-only BossHunter snapshots."""
+"""Format user-only delivery summaries from owned delivery snapshots."""
 from collections import Counter, defaultdict
 from datetime import datetime, timezone
-import hashlib
-import json
 
 PLATFORMS = {'boss': 'BOSS', 'liepin': '猎聘', 'zhilian': '智联', '51job': '51job'}
-
-
-def event_key(port, task_id):
-    # Separate namespace from HR replies; stable across watch process restarts.
-    return hashlib.sha256(json.dumps([port, 'delivery_summary', str(task_id)],
-                                     separators=(',', ':')).encode()).hexdigest()
-
-
-def task_from(workbench):
-    tasks = [t for t in (workbench.get('task'), workbench.get('last_task'))
-             if isinstance(t, dict) and t.get('id') and t.get('mode') == 'deliver'
-             and t.get('status') in {'completed', 'failed'}]
-    return max(tasks, key=lambda t: str(t.get('created_at') or '')) if tasks else None
 
 
 def timestamp(value, *, history=False):

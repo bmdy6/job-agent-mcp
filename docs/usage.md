@@ -1,6 +1,6 @@
 # 使用与工具参考
 
-默认 `engine.backend: own`，所有业务数据在 `~/.job-agent/jobs.sqlite3`。MCP、CLI 共用 service；平台页面只由适配器和 Ego Lite 驱动访问。TG 当前是通知出口，指令入口计划中。
+唯一后端为 `engine.backend: own`，所有业务数据在 `~/.job-agent/jobs.sqlite3`。MCP、CLI 共用 service；平台页面只由适配器和 Ego Lite 驱动访问。TG 当前是通知出口，指令入口计划中。
 
 ## 注册到 Codex / Claude Code
 
@@ -26,7 +26,7 @@ claude mcp add job-agent --transport stdio --scope user \
 
 采集先 `check_collection`，授权后 `start_collection(confirm=true)`。评分先预览请求数，再明确授权付费。投递先 `preview_greetings` 展示完整不可变批次，用户确认后用返回的 token 调 `send_greetings`；名单或文案变更须重新预览。投递状态用 `delivery_status`，停止用 `stop_delivery`。
 
-监听需独立授权 `start_reply_monitor(confirm=true)`，状态与停止为 `reply_monitor_status` / `stop_reply_monitor`；own 监听不自动回复或发简历。通知默认关闭，按配置启用自己的 Telegram 渠道。兼容后端工具的不同语义见 [BossHunter](bosshunter.md)。
+监听需独立授权 `start_reply_monitor(confirm=true)`，状态与停止为 `reply_monitor_status` / `stop_reply_monitor`；own 监听不自动回复或发简历。通知默认关闭，按配置启用自己的 Telegram 渠道。旧配置与已删除工具见[迁移说明](migrations/BTY-10.md)。
 
 ### own 评分
 
@@ -40,7 +40,7 @@ claude mcp add job-agent --transport stdio --scope user \
 
 采集写入的新岗位自动出现在待评分统计中，只有有 JD 且未过滤的岗位可评；每日任务不会自动付费评分。导入的旧分数和理由（含有理由的零分）保留并跳过，不提供自动重评。缺 JD 先补全再评。`failed/invalid_model_result` 不落分，用户可重新预览授权；超时、连接中断或进程意外退出的已发出请求保留未知状态/占位，防止重复收费，须人工查证后处理，不能直接重跑。
 
-`setup_check` 在 own 模式检查本地库、评分凭据、主简历和 Ego 配置，不探测 BossHunter。它仍会报告缺少经历、空间未验证等具体缺项。`pending_evaluations` / `submit_evaluations` 是旧 BossHunter 的 Agent 代评接口，在 own 模式明确 unsupported；付费评分使用上面三个工具。本表其他 BossHunter 描述仅适用于兼容后端。
+`setup_check` 检查本地库、评分凭据、主简历和 Ego 配置，并通过配置的采集空间进行登录预检。它会报告缺少经历、空间未验证等具体缺项。付费评分使用上面三个工具。
 
 ## 数据与日志
 
@@ -118,3 +118,31 @@ schema v6 在自己的 jobs 库保存 `hr_activity`（now / today / three_days /
 `funnel_stats(group_by='greeting_version')` 支持按版本分组；原有平台分组也增加 `interview_invited`、`invitation_rate`、`reply_to_invitation_rate`。已确认约面仍单列 `interview_scheduled`，不把邀约当作确认。`observed_conversion` 提供严格按首次成功投递归因的转化率，`greeting_stats` 提供分版本区间。`briefing()` 包含邀约待办和基于样本量的文案建议。以上查询工具只读，不迁移数据库、不调用模型、不访问原站。
 
 部署/回滚仍使用 `scripts/deploy.py`：v5 → v6 迁移事务化；返回 v5 前必须恢复部署前数据库备份。开发验证可用 `JOB_AGENT_DEPLOY_REHEARSE=1 uv run python -m unittest discover -s tests -p test_deploy.py -q`，该演练只在临时目录运行 FakeLaunchd 和假浏览器，不操作真实 launchd 或生产服务。
+
+## 本地求职数据看板
+
+```bash
+job-agent dashboard
+job-agent dashboard --out ~/归档/job-agent-看板/dashboard.html
+```
+
+MCP `dashboard(out=None)` 返回 `{"path": "生成的绝对路径"}`。默认输出为
+`$JOB_AGENT_HOME/dashboard.html`，可直接用浏览器打开；单文件包含所有样式和 SVG，
+离线可看，页面不自动联网，只有主动点击岗位 / 聊天链接才会打开网站。
+文件以私有权限原子替换，输出路径须以 `.html` 结尾。不会启动采集、投递、监听或告警，
+不会创建、迁移或修改数据库，也不会改写配置和状态文件。数据库不存在或版本不匹配时失败。
+
+累计数字和平台漏斗复用本地 `funnel_stats` 的岗位去重口径。BOSS 成功表示
+**沟通回执**，不代表简历送达；HR 回复数表示回复过的岗位数，邀约不代表已接受。
+公司数按已有公司名规则归一化去重，空名称不计。
+每日趋势按配置的 `engine.timezone` 展示首次已知投递 / 回复日期，重发和多条回复不重复计数；
+旧快照缺少真实动作日期时显示缺失数量，不借用采集、导入或快照更新时间。
+今日额度复用投递限速器的预留记录与较早尝试历史（可能包含未成功尝试），
+额度时区和上限使用各平台 `rate_policy()`，不等同于今日成功投递数。
+平台暂停、监听诊断和心跳来自本地最后状态；缺失状态显示未记录，不检测账号实时状态。
+最近投递最多 50 个岗位，HR 回复最多 30 条、正文前 40 字；不包含历史合成状态消息。
+招呼语效果复用 `greeting_stats` 的首次成功投递队列、样本门槛和 Wilson 95% 区间。
+
+如需从生产库生成评审预览，先用 SQLite backup API 从 `mode=ro` 连接创建一致副本，
+把配置与必要的状态 JSON **复制**到独立目录，再设置 `JOB_AGENT_HOME` 指向副本目录。
+HTML 和截图包含个人数据，应留在本地，不提交到仓库。

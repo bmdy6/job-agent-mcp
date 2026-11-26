@@ -16,7 +16,7 @@ class MonitorSettings(BaseModel):
     @field_validator('task_space_name')
     @classmethod
     def space_name(cls, value):
-        if not value.strip() or value.strip() == 'BossHunter 投递':
+        if not value.strip():
             raise ValueError('A dedicated monitor space is required')
         return value.strip()
 

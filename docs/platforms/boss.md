@@ -55,7 +55,7 @@ P1 当前可保守限制正常粘贴文案 ≤1000 UTF-16 单元；最终配置�
 
 本次查看的岗位、聊天、设置页未见验证码、频率限制或沟通额度耗尽提示；见到的「粘贴内容过长」是输入校验。未压测、未提交，无法推断每日额度、间隔或风控阈值。[观察记录][B11]
 
-夹具是原站 DOM/已加载模型的脱敏投影，不是 BossHunter 代码或其接口回包。正文、HR、公司、标识和附件名已替换，样例之间不承诺同一真实岗位映射；保留 class、方向、状态、节点层次与消息标识位置。没有保存 cookie、token、头像链接或 securityId 的值。`message`/`conversation` 模型是字段投影，不是原站完整响应契约。[B5][B6][B8][B9]
+夹具是原站 DOM/已加载模型的脱敏投影，不是旧适配器代码或其接口回包。正文、HR、公司、标识和附件名已替换，样例之间不承诺同一真实岗位映射；保留 class、方向、状态、节点层次与消息标识位置。没有保存 cookie、token、头像链接或 securityId 的值。`message`/`conversation` 模型是字段投影，不是原站完整响应契约。[B5][B6][B8][B9]
 
 [B1]: ../../mcp/tests/fixtures/platforms/boss/input-limit.json
 [B2]: ../../mcp/tests/fixtures/platforms/boss/input-runtime.json

@@ -98,7 +98,6 @@ def worker(kind, ident):
     request_path=path.parent/(ident+'.json')
     try:
         request=read(request_path)
-        if kind!='scoring' and load_config().engine.backend!='own': raise ValueError('Backend changed')
         if kind=='scoring':
             from .scoring import execute_run
             result=execute_run(request['run_id'],should_stop=should_stop)

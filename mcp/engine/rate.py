@@ -48,6 +48,16 @@ class RateDeferred(RuntimeError):
         super().__init__(code)
 
 
+def operation_times(operations, history=()):
+    """Merge reservations with pre-reservation attempt history, as the limiter does."""
+    return list(operations) + [t for t in history if t < min(operations, default=float('inf'))]
+
+
+def daily_usage(times, now, timezone):
+    day = lambda t: datetime.fromtimestamp(t, ZoneInfo(timezone)).date()
+    return sum(day(t) == day(now) for t in times)
+
+
 class RateLimiter:
     def __init__(self,repo,*,clock=time.time,sleep=time.sleep,seed=None,should_stop=lambda:False):
         self.repo,self.clock,self.sleep=repo,clock,sleep
@@ -68,9 +78,8 @@ class RateLimiter:
                     raise RateDeferred('outside_hours')
                 state=self.repo.state(platform,'pacing')
                 operations=self.repo.operations(platform,scope)
-                times=operations+[t for t in history if t<min(operations,default=float('inf'))]
-                day=lambda t:datetime.fromtimestamp(t,ZoneInfo(policy.timezone)).date()
-                if policy.daily_limit is not None and sum(day(t)==day(now) for t in times)>=policy.daily_limit:
+                times=operation_times(operations, history)
+                if policy.daily_limit is not None and daily_usage(times, now, policy.timezone)>=policy.daily_limit:
                     raise RateDeferred('daily_limit')
                 if sum(now-3600<t<=now for t in times)>=policy.hourly_limit:
                     raise RateDeferred('hourly_limit')

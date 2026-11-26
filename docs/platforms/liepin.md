@@ -4,7 +4,7 @@
 
 ## 范围与证据
 
-读取 #15 全文、#9 及其最新评论、PR #13。BossHunter 本地源码和 PR #325 仅作线索，未复制进本仓库。浏览器仅使用现有 Ego Lite，专属空间按名创建为 `job-agent 取证 B`，所有标签页由本任务创建并关闭。未操作空间 28，未启动、停止或修改 BossHunter。
+读取 #15 全文、#9 及其最新评论、PR #13。外部源码和 PR #325 仅作线索，未复制进本仓库。浏览器仅使用现有 Ego Lite，专属空间按名创建为 `job-agent 取证 B`，所有标签页由本任务创建并关闭。未操作其他任务空间或服务。
 
 以下夹具位于 [`mcp/tests/fixtures/platforms/liepin/`](../../mcp/tests/fixtures/platforms/liepin/)。JSON 是原站 DOM/运行时数据的裁剪、脱敏投影，**不是原始 API 响应**；姓名、公司、正文、ID 均替换，字段类型和 class 保留。消息 ID 是稳定占位符，不能用于线上去重。原始 HTML、截图和哈希对应的原件仅保留在本地任务目录 `evidence-private/`，不提交。
 

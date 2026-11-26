@@ -1,16 +1,11 @@
-import json
-from http.client import BadStatusLine
 import os
 import sys
 import tempfile
-import threading
 import unittest
-from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import server
 import v1
 from applications import application_funnel
 from config import load_config
@@ -81,72 +76,3 @@ class EdgesTest(unittest.TestCase):
                     load_config()
             path.write_text('mode: practice\npractice: {max_interviews_per_week: 0}\nstretch_salary_min: 25')
             self.assertEqual(load_config().practice.max_interviews_per_week, 0)
-
-    def test_cdp_invalid_http_is_reported_as_missing(self):
-        with patch.object(v1, 'HTTPConnection') as connection:
-            connection.return_value.getresponse.side_effect = BadStatusLine('invalid HTTP')
-            self.assertFalse(v1.check_cdp('http://127.0.0.1:9222')['ok'])
-            connection.return_value.close.assert_called_once()
-
-    def test_cdp_get_only_and_never_follow_redirects(self):
-        requests = []
-        class Handler(BaseHTTPRequestHandler):
-            def log_message(self, *_):
-                pass
-            def do_GET(self):
-                requests.append(self.path)
-                body = json.dumps({'Browser': 'Synthetic'}).encode()
-                self.send_response(200 if len(requests) == 1 else 302)
-                self.send_header('Location', 'http://example.invalid/never-follow')
-                self.end_headers()
-                self.wfile.write(body)
-        service = ThreadingHTTPServer(('127.0.0.1', 0), Handler)
-        worker = threading.Thread(target=service.serve_forever, daemon=True)
-        worker.start()
-        try:
-            self.assertTrue(v1.check_cdp(f'ws://127.0.0.1:{service.server_port}/devtools/browser/test')['ok'])
-            self.assertFalse(v1.check_cdp(f'http://127.0.0.1:{service.server_port}')['ok'])
-            self.assertEqual(requests, ['/json/version', '/json/version'])
-        finally:
-            service.shutdown()
-            service.server_close()
-            worker.join()
-
-
-class ErrorTest(unittest.IsolatedAsyncioTestCase):
-    async def test_pending_limit_matches_upstream_contract(self):
-        with tempfile.TemporaryDirectory() as home, patch.dict(os.environ, {'JOB_AGENT_HOME': home}, clear=True):
-            with patch.object(server, 'api') as api:
-                for limit in [0, 11]:
-                    with self.assertRaises(Exception):
-                        await server.mcp.call_tool('pending_evaluations', {'limit': limit})
-                api.assert_not_called()
-
-    async def test_pagination_nonadvancing_or_truncated_fails_instead_of_partial_totals(self):
-        with tempfile.TemporaryDirectory() as home, patch.dict(os.environ, {'JOB_AGENT_HOME': home}, clear=True):
-            for pages in [[{'total': 2, 'items': [{'id': 'a', 'status': 'sent'}]}]*2,
-                          [{'total': 2, 'items': [{'id': 'a', 'status': 'sent'}]}, {'total': 2, 'items': []}]]:
-                with patch.object(server, 'api', side_effect=pages), self.assertRaises(Exception):
-                    await server.mcp.call_tool('funnel', {})
-
-    async def test_upstream_unavailable_setup_returns_all_checks_and_reads_fail(self):
-        with tempfile.TemporaryDirectory() as home, patch.dict(os.environ, {'JOB_AGENT_HOME': home}, clear=True):
-            with patch.object(server, 'api', side_effect=RuntimeError('offline')), patch.object(v1, 'check_cdp', return_value={'ok': False}):
-                for tool in ['briefing', 'funnel', 'company_history', 'pending_evaluations', 'profile']:
-                    with self.subTest(tool=tool), self.assertRaises(Exception):
-                        await server.mcp.call_tool(tool, {'company': 'acme'} if tool == 'company_history' else {})
-                result = (await server.mcp.call_tool('setup_check', {}))[1]
-                self.assertEqual(set(result['missing']), {'config', 'bosshunter', 'resume', 'experience', 'browser_cdp'})
-
-    async def test_relative_resume_uses_bosshunter_base_not_process_cwd(self):
-        def api(path, body=None):
-            if path == '/api/config':
-                return {'profile': {'resume_path': './resume.md'}}
-            if path == '/api/agent/onboarding':
-                return {'missing': []}
-            return {'preferences': {}}
-        with tempfile.TemporaryDirectory() as home, patch.dict(os.environ, {'JOB_AGENT_HOME': home}, clear=True):
-            with patch.object(server, 'api', side_effect=api), patch.object(v1, 'check_cdp', return_value={'ok': True}):
-                result = (await server.mcp.call_tool('setup_check', {}))[1]
-                self.assertTrue(result['checks']['resume']['ok'])
-                self.assertEqual(result['checks']['resume']['checked_by'], 'bosshunter_onboarding')

@@ -1,13 +1,11 @@
-"""v1 context tools: local files and the existing loopback BossHunter transport."""
+"""Context tools backed by owned SQLite and private local files."""
 
-import json
-from http.client import HTTPConnection, HTTPException
 from pathlib import Path
 from typing import Annotated, Any, Literal
-from urllib.parse import quote, urlencode, urlsplit
+from urllib.parse import quote
 
 from mcp.types import ToolAnnotations
-from pydantic import Field, StrictBool
+from pydantic import Field
 
 from service import read_tools as own
 from config import load_config, job_agent_home
@@ -20,25 +18,6 @@ Event = Literal['greeted', 'replied', 'resume_requested', 'interview_scheduled',
 Group = Literal['resume_version', 'platform', 'variant']
 READ = ToolAnnotations(readOnlyHint=True, openWorldHint=False)
 WRITE = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=False, openWorldHint=False)
-
-
-def check_cdp(url: str) -> dict:
-    parsed = urlsplit(url)
-    # Config validates loopback host, scheme and port. Raw HTTP avoids redirects,
-    # proxies and websocket/browser interaction. Ignore WS target paths.
-    if parsed.hostname not in {'127.0.0.1', 'localhost', '::1'} or parsed.scheme not in {'http', 'ws'}:
-        raise ValueError('CDP must be loopback HTTP/WS')
-    connection = HTTPConnection(parsed.hostname, parsed.port, timeout=3)
-    try:
-        connection.request('GET', '/json/version')
-        response = connection.getresponse()
-        payload = json.loads(response.read())
-        ok = response.status == 200 and isinstance(payload, dict) and bool(payload.get('Browser') or payload.get('webSocketDebuggerUrl'))
-        return {'ok': ok, 'http_status': response.status}
-    except (OSError, ValueError, HTTPException) as exc:
-        return {'ok': False, 'reason': type(exc).__name__}
-    finally:
-        connection.close()
 
 
 def import_resume(path: str) -> dict:
@@ -68,44 +47,19 @@ def import_resume(path: str) -> dict:
     return {'text': text, 'format': suffix[1:], 'warnings': [] if text.strip() else ['No extractable text; scanned PDFs require OCR outside this MCP.']}
 
 
-def register_tools(mcp, api):
-    upstream_api = api
-    def api(path, body=None):
-        return own.read_api(path, body) if own.is_own() else upstream_api(path, body)
-
-    def events():
-        return own.read_events() if own.is_own() else data.read_events()
-
-    # api is a callable resolved by server at call time, retaining v0 test seams.
-    def all_jobs():
-        if own.is_own():
-            return own.all_jobs()
-        jobs, seen, offset = [], set(), 0
-        while True:
-            page = api('/api/jobs/search?'+urlencode({'limit': 100, 'offset': offset, 'sort_by': 'created_at'}))
-            items = page['items']
-            if not items:
-                if offset < page['total']:
-                    raise ValueError('BossHunter pagination ended before total')
-                break
-            fresh = [j for j in items if str(j['id']) not in seen]
-            if not fresh:
-                raise ValueError('BossHunter pagination did not advance')
-            jobs.extend(fresh)
-            seen.update(str(j['id']) for j in fresh)
-            offset += len(items)
-            if offset >= page['total']:
-                break
-        return jobs
+def register_tools(mcp):
+    api = own.read_api
+    events = own.read_events
+    all_jobs = own.all_jobs
 
     def profile_data():
         config = load_config()
-        return {'preferences': own.preferences() if own.is_own() else api('/api/agent/state')['preferences'], 'mode': config.mode,
+        return {'preferences': own.preferences(), 'mode': config.mode,
                 'practice': config.practice.model_dump(), 'stretch_salary_min': config.stretch_salary_min}
 
     @mcp.tool(annotations=READ)
     def profile() -> dict[str, Any]:
-        """Read BossHunter preferences plus job-agent mode, practice cap and stretch line (monthly K)."""
+        """Read owned search preferences plus job-agent mode, practice cap and stretch line (monthly K)."""
         return profile_data()
 
     @mcp.tool(annotations=READ)
@@ -136,7 +90,7 @@ def register_tools(mcp, api):
     @mcp.tool(annotations=WRITE)
     def log_event(job_id: JobID, event: Event, resume_version: str | None = None,
                   variant: str | None = None, chat_url: str | None = None, note: str | None = None) -> dict[str, Any]:
-        """Append a local application event, copying company/platform/url from BossHunter. Does not send."""
+        """Append a local application event, copying company/platform/url from the owned job pool. Does not send."""
         job = api('/api/jobs/'+quote(job_id, safe=''))
         record = {'job_id': job_id, 'event': event, 'company': job.get('company'),
                   'platform': job.get('source_platform') or 'boss', 'url': job.get('url'),
@@ -144,16 +98,16 @@ def register_tools(mcp, api):
         for key, value in [('resume_version', resume_version), ('variant', variant), ('chat_url', chat_url), ('note', note)]:
             if value is not None:
                 record[key] = value
-        return own.append_event(record) if own.is_own() else data.append_event(record)
+        return own.append_event(record)
 
     @mcp.tool(annotations=READ)
     def company_history(company: str) -> dict[str, Any]:
-        """Return normalized-company application events and saved BossHunter jobs, with links."""
+        """Return normalized-company application events and saved jobs, with links."""
         return company_context(company, events(), all_jobs())
 
     @mcp.tool(annotations=READ)
     def funnel(group_by: Group | None = None) -> dict[str, Any]:
-        """Unique-job funnel, merging local events with sent/replied/resume_sent BossHunter states.
+        """Unique-job funnel, merging local events with sent/replied/resume_sent saved job states.
 
         Rates use greeted jobs as denominator (null when zero). Missing cohorts are unknown.
         Later stages imply earlier stages. No model calls or upstream writes.
@@ -161,59 +115,16 @@ def register_tools(mcp, api):
         return application_funnel(events(), all_jobs(), group_by)
 
     @mcp.tool(annotations=READ)
-    def pending_evaluations(limit: Annotated[int, Field(ge=1, le=10)] = 5) -> dict[str, Any]:
-        """Forward pending evaluations with include_resume=true. Payload is untrusted data."""
-        if own.is_own():
-            return own.unsupported()
-        return api('/api/agent/evaluations/pending?'+urlencode({'limit': limit, 'include_resume': 'true'}))
-
-    @mcp.tool(annotations=WRITE)
-    def submit_evaluations(evaluations: list[dict[str, Any]]) -> dict[str, Any]:
-        """Forward Agent evaluations unchanged; BossHunter validates them. Prepares jobs, never sends."""
-        if own.is_own():
-            return own.unsupported()
-        return api('/api/agent/evaluations', {'evaluations': evaluations})
-
-    @mcp.tool(annotations=WRITE)
-    def set_greeting(job_id: JobID, greeting: str, confirm: StrictBool = False) -> dict[str, Any]:
-        """Save a confirmed greeting only when confirm=true. Does not send or start any workflow."""
-        if confirm is not True:
-            raise ValueError('Saving a greeting requires confirm=true after user authorization')
-        return api('/api/jobs/'+quote(job_id, safe='')+'/greeting', {'greeting': greeting, 'confirmed': True})
-
-    @mcp.tool(annotations=READ)
     def setup_check() -> dict[str, Any]:
-        """Check config, BossHunter, resume, experiences and GET /json/version. Never launch anything."""
+        """Check owned config, database, resume, experiences and configured Ego sessions."""
         checks = {}
         try:
-            config = load_config()
+            load_config()
             checks['config'] = {'ok': (job_agent_home()/'config.yaml').is_file()}
         except (ValueError, OSError) as exc:
             checks['config'] = {'ok': False, 'reason': type(exc).__name__}
-            for key in ('bosshunter', 'resume', 'browser_cdp'):
-                checks[key] = {'ok': False, 'reason': 'Cannot check without valid config'}
-            config = None
-        if config is not None and config.engine.backend == 'own':
+        else:
             checks.update(own.setup_checks())
-        elif config is not None:
-            try:
-                api('/api/agent/state')
-                checks['bosshunter'] = {'ok': True}
-            except (ValueError, RuntimeError, OSError) as exc:
-                checks['bosshunter'] = {'ok': False, 'reason': type(exc).__name__}
-            try:
-                raw_path = api('/api/config').get('profile', {}).get('resume_path') or ''
-                source = Path(raw_path).expanduser()
-                if raw_path and source.is_absolute():
-                    checks['resume'] = {'ok': source.is_file(), 'resume_path': raw_path, 'checked_by': 'local_filesystem'}
-                else:
-                    # Relative paths belong to BossHunter's BASE_DIR, never MCP's cwd.
-                    onboarding = api('/api/agent/onboarding')
-                    checks['resume'] = {'ok': bool(raw_path) and not any(i['key'] == 'resume' for i in onboarding['missing']),
-                                        'resume_path': raw_path, 'checked_by': 'bosshunter_onboarding'}
-            except (ValueError, RuntimeError, OSError) as exc:
-                checks['resume'] = {'ok': False, 'reason': type(exc).__name__}
-            checks['browser_cdp'] = check_cdp(config.browser.cdp_url)
         try:
             checks['experience'] = {'ok': bool(data.experience_list())}
         except (ValueError, OSError) as exc:
@@ -238,7 +149,7 @@ def register_tools(mcp, api):
         from service.monitor import status as monitor_status
         monitor = monitor_status()
         context = profile_data()
-        jobs, event_rows = own.population() if own.is_own() else (all_jobs(), events())
+        jobs, event_rows = own.population()
         if job_id is not None:
             job = api('/api/jobs/'+quote(job_id, safe=''))
             link = job_link(job, event_rows)
@@ -255,12 +166,9 @@ def register_tools(mcp, api):
         for key, statuses in categories.items():
             items = [job_link(j, event_rows) for j in jobs if j.get('status') in statuses]
             todos[key] = {'count': len(items), 'items': items}
-        if own.is_own():
-            from service.signals import greeting_stats, interview_schedule
-            signals = {'greeting_stats': greeting_stats(), 'interview_schedule': interview_schedule()}
-            todos['interview_invitations'] = signals['interview_schedule']
-        else:
-            signals = {}
+        from service.signals import greeting_stats, interview_schedule
+        signals = {'greeting_stats': greeting_stats(), 'interview_schedule': interview_schedule()}
+        todos['interview_invitations'] = signals['interview_schedule']
         from analytics import brief_reminders
         todos['company_briefs'] = brief_reminders(jobs, event_rows)
         return {'profile': context, 'mode': context['mode'], 'monitor': monitor, 'funnel': application_funnel(event_rows, jobs),
@@ -273,8 +181,6 @@ def register_tools(mcp, api):
         Reuses #59 content hashes; absent historic text is unknown. Small samples
         never imply a winning version. No model, network, writes or sending.
         """
-        if not own.is_own():
-            return {'supported': False, 'message': 'Requires backend=own'}
         from service.signals import greeting_stats as read_stats
         return read_stats()
 
@@ -284,25 +190,8 @@ def register_tools(mcp, api):
 
         Invitations require the user's decision. Never accepts or creates calendar events.
         """
-        if not own.is_own():
-            return {'supported': False, 'message': 'Requires backend=own'}
         from service.signals import interview_schedule as read_schedule
         return read_schedule()
 
     from issue6 import register_tools as register_issue6
-    # Route only funnel_stats at registration; issue6.py is shared with delivery.
-    from functools import wraps
-    class BackendTools:
-        def tool(self, *args, **kwargs):
-            register = mcp.tool(*args, **kwargs)
-            def decorate(function):
-                if function.__name__ == 'funnel_stats':
-                    @wraps(function)
-                    def routed(*args, **kwargs):
-                        if own.is_own():
-                            return own.funnel_stats(*args, **kwargs)
-                        return function(*args, **kwargs)
-                    return register(routed)
-                return register(function)
-            return decorate
-    register_issue6(BackendTools(), api, all_jobs)
+    register_issue6(mcp)

@@ -1,8 +1,6 @@
-"""Owned read-tool compatibility. Connections never create or migrate a database.
+"""Owned read tools use read-only snapshots and existing Store projections.
 
-SQL lives here temporarily because #15 P is scoped away from the shared store
-files. Reuses Store's existing read projections; application events use the
-append-only source_history rather than introducing a second database/schema.
+Application events append to source_history; reads never create or migrate a database.
 """
 from collections import Counter
 from contextlib import contextmanager, closing
@@ -17,14 +15,6 @@ from urllib.parse import parse_qs, unquote, urlsplit
 from config import load_config, job_agent_home
 from store import Store, default_path, SCHEMA_VERSION
 from applications import SENT, REPLIED
-
-
-def is_own():
-    return load_config().engine.backend == 'own'
-
-
-def unsupported():
-    return {'backend': 'own', 'supported': False, 'message': 'own 模式不支持旧 BossHunter 代评接口；请用 preview_scoring / start_scoring / scoring_runs'}
 
 
 class ReadStore(Store):
@@ -188,39 +178,49 @@ def append_event(record):
     return record
 
 
+def funnel_population(store):
+    """Canonical jobs/events, including observed invitation cohorts."""
+    jobs, events = jobs_from(store), events_from(store)
+    from store.signals import cohorts
+    cohort_rows = cohorts(store)
+    versions = {str(r['job_id']): r['greeting_version'] for r in cohort_rows}
+    for j in jobs:
+        j['greeting_version'] = versions.get(j['id'], 'unknown')
+    for item in cohort_rows:
+        if item['interview_invited']:
+            events.append({'job_id':str(item['job_id']),'event':'interview_invited','platform':item['platform']})
+    return jobs, events
+
+
 def funnel_stats(group_by='platform', days=None):
-    from analytics import merged_stats
-    config = load_config()
     with snapshot() as store:
-        jobs, events = jobs_from(store), events_from(store)
-        upstream = store.funnel_stats()  # exact import-compatible early stages
-        from store.scoring import scores
-        upstream['AI评分'] += len(scores(store))
-        upstream['采集总数'] = len(jobs)
-        upstream['初筛通过'] += sum(j['legacy_status'] is None for j in jobs)
-        upstream['发送'] = sum(j['status'] in SENT for j in jobs)
-        upstream['回复'] = sum(j['status'] in REPLIED for j in jobs)
-        upstream['拒绝'] = sum(j['status']=='rejected' for j in jobs)
-        cutoff = (datetime.now(timezone.utc)-timedelta(days=(days or config.analytics.activity_days)-1)).date().isoformat()
-        history = store.connection.execute('SELECT occurred_at,action FROM source_history').fetchall()
-        activity = Counter((r['occurred_at'][:10],r['action']) for r in history if r['occurred_at'][:10]>=cutoff)
-        from store.signals import cohorts, greeting_statistics
-        cohort_rows = cohorts(store)
-        versions = {str(r['job_id']): r['greeting_version'] for r in cohort_rows}
-        for j in jobs:
-            j['greeting_version'] = versions.get(j['id'], 'unknown')
-        for item in cohort_rows:
-            if item['interview_invited']:
-                events.append({'job_id':str(item['job_id']),'event':'interview_invited','platform':item['platform']})
-        result = merged_stats(dict(Counter(j['status'] for j in jobs)), {'funnel':upstream},
-            [{'day':day,'action':action,'cnt':n} for (day,action),n in sorted(activity.items())],
-            events,jobs,group_by,config.analytics.score_bands)
-        evidence = greeting_statistics(store,min_samples=config.analytics.greeting_min_samples)
-        result['greeting_stats'] = evidence
-        result['observed_conversion'] = evidence['total']
+        return funnel_from_store(store, load_config(), group_by, days)
+
+
+def funnel_from_store(store, config, group_by='platform', days=None):
+    """The funnel_stats projection on an existing read-only snapshot."""
+    from analytics import merged_stats
+    jobs, events = funnel_population(store)
+    upstream = store.funnel_stats()  # exact import-compatible early stages
+    from store.scoring import scores
+    upstream['AI评分'] += len(scores(store))
+    upstream['采集总数'] = len(jobs)
+    upstream['初筛通过'] += sum(j['legacy_status'] is None for j in jobs)
+    upstream['发送'] = sum(j['status'] in SENT for j in jobs)
+    upstream['回复'] = sum(j['status'] in REPLIED for j in jobs)
+    upstream['拒绝'] = sum(j['status']=='rejected' for j in jobs)
+    cutoff = (datetime.now(timezone.utc)-timedelta(days=(days or config.analytics.activity_days)-1)).date().isoformat()
+    history = store.connection.execute('SELECT occurred_at,action FROM source_history').fetchall()
+    activity = Counter((r['occurred_at'][:10],r['action']) for r in history if r['occurred_at'][:10]>=cutoff)
+    from store.signals import greeting_statistics
+    result = merged_stats(dict(Counter(j['status'] for j in jobs)), {'funnel':upstream},
+        [{'day':day,'action':action,'cnt':n} for (day,action),n in sorted(activity.items())],
+        events,jobs,group_by,config.analytics.score_bands)
+    evidence = greeting_statistics(store,min_samples=config.analytics.greeting_min_samples)
+    result['greeting_stats'] = evidence
+    result['observed_conversion'] = evidence['total']
     result.update(backend='own',as_of=datetime.now(timezone.utc).isoformat(),
-                  semantics='Unique owned job IDs; imported state plus native delivery/reply state and SQLite application events. 发送 counts workflow actions, not necessarily formal applications or attachments. See resume_delivery_status for Liepin/51job evidence. days affects activity only.',
-                  own=result.pop('bosshunter'), bosshunter=None)
+                  semantics='Unique owned job IDs; imported state plus native delivery/reply state and SQLite application events. 发送 counts workflow actions, not necessarily formal applications or attachments. See resume_delivery_status for Liepin/51job evidence. days affects activity only.')
     return result
 
 
@@ -279,7 +279,7 @@ def setup_checks():
 
 def read_api(path, body=None):
     if body is not None:
-        raise ValueError('own 模式不支持此 BossHunter 写入接口')
+        raise ValueError('This read interface does not support writes')
     parsed = urlsplit(path)
     if parsed.path == '/api/jobs/search':
         return search(parse_qs(parsed.query))

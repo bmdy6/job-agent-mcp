@@ -1,4 +1,4 @@
-"""Engine config is deliberately independent of the legacy sender."""
+"""Configuration for the owned delivery engine."""
 from typing import Literal
 from pydantic import BaseModel, ConfigDict, Field, model_validator
 from .models import Platform, PLATFORMS
@@ -57,7 +57,7 @@ class EngineSettings(BaseModel):
     minimum_hr_activity: Literal['now', 'today', 'three_days', 'week'] | None = None
     experience_priority: list[str] = Field(default_factory=list)
     cooldown: CooldownSettings = Field(default_factory=CooldownSettings)
-    backend: Literal['bosshunter', 'own'] = 'bosshunter'
+    backend: Literal['own'] = 'own'
     monitor: MonitorSettings = Field(default_factory=MonitorSettings)
     live_send_enabled: bool = Field(default=False, strict=True)
     dry_run: bool = Field(default=True, strict=True)
@@ -80,16 +80,15 @@ class EngineSettings(BaseModel):
 
     @model_validator(mode='after')
     def defaults(self):
-        if self.task_space_name.strip() == 'BossHunter 投递' or self.task_space_name == self.monitor.task_space_name:
+        if self.task_space_name == self.monitor.task_space_name:
             raise ValueError('Dedicated separate delivery and monitor spaces required')
         if not self.task_space_name.strip():
             raise ValueError('Task space name must not be blank')
-        if self.backend == 'own':
-            for name, cap in {'boss': 1000, 'zhilian': 500, 'liepin': 800}.items():
-                settings = self.platforms.get(name)
-                if settings and (len(settings.greeting.encode('utf-16-le')) // 2 > cap
-                                 or settings.greeting_max_length > cap):
-                    raise ValueError(f'{name} exceeds P0-verified limit {cap}')
+        for name, cap in {'boss': 1000, 'zhilian': 500, 'liepin': 800}.items():
+            settings = self.platforms.get(name)
+            if settings and (len(settings.greeting.encode('utf-16-le')) // 2 > cap
+                             or settings.greeting_max_length > cap):
+                raise ValueError(f'{name} exceeds P0-verified limit {cap}')
         for platform in PLATFORMS:
             self.platforms.setdefault(platform, PlatformSettings())
         return self

@@ -1,15 +1,7 @@
 # 自有岗位库（#15 / D + E）
 
-提供自有数据层与一次性 BossHunter 导入。`engine.backend: own` 的 MCP、采集、评分、投递、统计和监听共用此库。
-SQLite 仅用 Python 标准库，无新依赖。路径默认 `$JOB_AGENT_HOME/jobs.sqlite3`，HOME 未设置时为 `~/.job-agent/jobs.sqlite3`。新库权限 0600。
-
-```sh
-cd mcp
-uv run job-agent import-bosshunter
-# 可选参数：--source /path/to/bosshunter.db --database /path/to/jobs.sqlite3 --source-id bosshunter
-```
-
-源库默认 `~/Library/Application Support/BossHunter/data/bosshunter.db`，用 URI `mode=ro`、`query_only`、单一读事务打开。不调用 BossHunter 写 API、不读取简历文件、不读取 HR 字段。只输出聚合计数，错误只输出类型。真实源数据和 history.detail 仅写入本机私有库，不可提交到 Git。
+提供自有数据层；MCP、采集、评分、投递、统计和监听共用此库。
+SQLite 仅用 Python 标准库，无新依赖。路径默认 `$JOB_AGENT_HOME/jobs.sqlite3`，环境变量未设置时为 `~/.job-agent/jobs.sqlite3`。新库权限 0600。旧数据无需重新导入，迁移说明见 [BTY-10](../../docs/migrations/BTY-10.md)。
 
 ## API 给 C / 后续采集接入
 
@@ -37,14 +29,14 @@ with Store() as store:
 
 服务层负责用户授权；本模块提供队列和不可变批次，但不会执行投递。读写接口保留完整招呼语，不设 300 字上限。
 
-## 导入语义与对账
+## 已保存历史数据的语义与对账
 
 - 所有岗位（含软删除）均保留；默认查询与兼容统计排除软删除。
 - `source_history` 保留所有历史动作及原始 detail，按源 namespace + history ID 去重。岗位 ID 使用 source_job_id，老 BOSS 库缺失时回退到旧 id；平台独立，不跨平台合并。
 - 每个岗位一个 `legacy_snapshot` 投递记录；发送/错误等历史事件另存为 `legacy_event`。`counts()` 的投递总数包含这两种，不能当已投岗位数。历史事件没有完整招呼语、附件名时留空；当前岗位招呼语只保留在快照上。history.detail 中的旧发送摘要仍可追溯。
 - `sent/manual_sent/replied/resume_sent/needs_resume/follow_up_sent` 快照归为 sent；filtered/rejected 归 skipped；approved/ready/scored/pending 归 pending；旧 error 或未知状态归 unverified，避免将不确定结果当成可自动重试的失败。
 - 旧库没有平台消息 ID，导入使用 `source_history` 编号生成稳定消息身份，`id_origin=source_history`。`hr_reply_detected` 可能只有 50 字摘要，设 `is_excerpt=1`。JSON `hr_question` 为入站；replied/auto_replied 的 manual_reply 或 ai_reply 为出站；待审批建议不当已发消息。摘要与后续完整记录保留为各自来源证据，不能把回复事件条数当独立会话数。不会从 history 重建完整聊天流水。
-- 一次性导入采用 insert-once：相同 source-id 重跑新增缺失的岗位/历史，不刷新已有快照或覆盖引擎状态。源库后续状态更改不会同步。`source-id` 默认 bosshunter，移动同一库保持不变；独立库必须用不同 ID。来源历史孤儿记录会让整批回滚。
+- 已导入记录保留原 namespace、历史和快照，不再同步外部源。删除导入器不修改这些行，也不增加 schema migration。
 - `legacy_stats()` 与 `funnel_stats()` 是导入快照的兼容统计，可与导入前 stats/workbench 核对；它们不是原生引擎分析。保留旧评分元数据和“是否生成简历”布尔值以核对漏斗，不迁移简历内容或路径。`counts()` 另给出按平台及投递五态的统计。
 
 

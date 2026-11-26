@@ -1,63 +1,8 @@
-# 浏览器连接验证
-
-2026-11-18（macOS）结论：**Ego Lite 支持标准 CDP，可通过 BossHunter 自带 Browser Runtime 连接。本次连接测试通过，无需退回 Chrome。**
-
-## 实测依据
-
-- 任务给的 `~/Applications/ego lite.app` 不存在；实际安装位置是 `/Applications/ego lite.app`。已有主实例保持运行，验证使用独立用户数据目录和服务名。
-- `ego-browser` CLI 能管理 TaskSpace、页面和内部 CDP，但 `help` 未列出对外 CDP 监听开关；`Browser.getBrowserCommandLine` 在其内部接口不可用。因此验证了应用可执行文件的 Chromium 启动参数。
-- `--remote-debugging-port=9339 --remote-debugging-address=127.0.0.1` 成功开放监听，`GET /json/version` 返回 `Protocol-Version: 1.3` 和 `webSocketDebuggerUrl`。产品标识为 `Chrome/156.0.8078.96`；这是 Ego Lite 的 Chromium 产品标识。
-- BossHunter 原有 `cdp-proxy.mjs` 在 `BOSSHUNTER_CHROME_PORTS=9339` 下连接成功。通过其 `RuntimeClient.new_tab("https://www.zhipin.com/")` 创建页面，再用 `evaluate(..., "document.title")` 读到标题：**BOSS直聘-找工作BOSS直聘直接谈！招聘求职找工作！**
-- Runtime 健康状态最终为 `connected: true`、`chromePort: 9339`。上游把 Chromium 产品标识显示成 `browserName: "Google Chrome"`，不能据此认定进程是 Chrome；监听端口实际由上述 Ego Lite 进程持有。
-
-## 复现连接
-
-以下是独立测试实例的启动方式。路径按实际安装修改；用新目录避免复用正在运行的实例吞掉启动参数。
-
-```bash
-"/Applications/ego lite.app/Contents/MacOS/ego lite" \
-  --user-data-dir="$HOME/.job-agent/ego-cdp-profile" \
-  --ego-server-name=job-agent-cdp \
-  --remote-debugging-port=9339 \
-  --remote-debugging-address=127.0.0.1 \
-  --no-first-run --no-default-browser-check about:blank
-```
-
-在 job-agent 用户配置中记录：
-
-```yaml
-browser:
-  name: ego-lite
-  cdp_url: http://127.0.0.1:9339
-```
-
-BossHunter 的常规配置可以设置：
-
-```yaml
-browser:
-  chrome_ports: [9339]
-```
-
-仅本次连接验证用独立代理端口运行原始脚本，未改上游文件和配置：
-
-```bash
-BOSSHUNTER_CHROME_PORTS=9339 \
-BOSSHUNTER_BROWSER_PROXY_PORT=13456 \
-BOSSHUNTER_ENABLE_PORT_GUARD=false \
-node /path/to/BossHunter/src/bosshunter/browser/runtime/cdp-proxy.mjs
-```
-
-`RuntimeClient` 以 `{"browser": {"proxy_host": "127.0.0.1", "proxy_port": 13456}}` 连接该测试代理。关闭 port guard 仅用于这次简单连接测试，未更改 BossHunter 的日常默认配置。job-agent 的 YAML 用于记录浏览器偏好；它不会自动改写 BossHunter 配置。
-
-## 验证边界
-
-只创建 BOSS 首页、读取 URL/页面标题/readyState，随后关闭测试页面和专用实例。没有登录、采集、评分、打招呼、发消息或改招聘平台数据；不代表已验证登录态复用或四个平台采集。本次独立空资料目录报告过 macOS Keychain/encryption 不可用，但没有阻断 CDP 和首页标题读取，也未读取用户密码或 cookie。
-
-如果另一台机器的 Ego Lite 版本无法开放 CDP 或无法经上述 Runtime 读取标题，则退回支持 CDP 的 Chrome；不要把 `ego-browser` 内部页面操作成功等同于 BossHunter 已能连接。
+# 浏览器与任务空间
 
 ## #15 当前连接方式与任务空间生命周期（2026-11-24）
 
-自建引擎按 #15 硬约束，只通过**正在运行的 Ego Lite** 执行 `ego-browser nodejs`，按名称 `taskSpace("job-agent 投递")` 复用或创建。上文 11-18 的独立实例/CDP/Chrome 回退是历史连接实验，不是 #15 的运行方式；当前任务不得启动那些实例或使用 Chrome 回退。P0 A 仅使用「job-agent 取证 A」，没有连接、切换、关闭空间 28「BossHunter 投递」的页面，也没有修改 BossHunter。
+自研引擎只通过**正在运行的 Ego Lite** 执行 `ego-browser nodejs`，按配置名称复用或创建专属 Agent 空间。投递、采集和监听分别使用独立空间；不启动另一浏览器实例，不使用 CDP 代理。
 
 ### 哪些动作会让空间消失
 
@@ -143,14 +88,6 @@ browser:
 
 TG 沿用 `notify.enabled`、启用的 Telegram channel 和环境变量；关闭通知时只留日志。本任务不真实发 TG、不投递、不发 HR 消息。
 
-### BossHunter 过渡模板
-
-见 [脚本、plist 和安装/停用说明](../examples/bosshunter-keepalive.md)。固定处理「BossHunter 投递」；空间缺失才创建同名空间并打开聊天页，先备份原配置，再只更新实际读取的 `delivery.ego_task_space_id`。不改 `collection` 或顶层同名字段。
-
-本任务只交付模板，不运行它，不安装或加载到 `~/Library/LaunchAgents`，不修改真实 BossHunter 配置。模板恢复及写配置只用离线假 API 和临时文件测试；是否安装、BossHunter 是否需要重启加载配置由用户决定。
-
-观察结束后仅关闭 A 的自建 p1，B 已缺失无需操作；未 finish、未操作其他空间。新驱动轻量检查通过，TG 与真实投递未运行。
-
 ## 离线取证边界
 
-平台夹具是脱敏 DOM 片段，保留 class、层次和通用界面文案，替换身份、岗位、消息、附件与 ID；可用于解析和去重测试，不是完整网页或真实发送回执。时间和 ID 是合成值，不同文件之间不保证关联。保活观察只支持该版本下的闲置回收与周期调用续期，不证明固定 TTL；原始过程证据已移除。
+平台夹具是脱敏 DOM 片段，保留 class、层次和通用界面文案，替换身份、岗位、消息、附件与 ID；可用于解析和去重测试，不是完整网页或真实发送回执。保活观察只支持该版本下的闲置回收与周期调用续期，不证明固定 TTL。

@@ -31,8 +31,6 @@ class OwnReadTest(unittest.IsolatedAsyncioTestCase):
             store.record_delivery(self.a,status='sent')
             store.add_reply(self.a,message_id='in1',direction='inbound',body='您好',chat_url='https://example.invalid/chat')
             store.add_reply(self.b,message_id='out1',direction='outbound',body='您好')
-        http=patch.object(server,'api',side_effect=AssertionError('own must not call HTTP'))
-        http.start();self.addCleanup(http.stop)
         browser=patch('browser.ego.EgoBrowser._call',side_effect=AssertionError('no browser'))
         browser.start();self.addCleanup(browser.stop)
 
@@ -78,16 +76,13 @@ class OwnReadTest(unittest.IsolatedAsyncioTestCase):
         self.assertIn('preferences',await self.call('profile'))
         self.assertEqual((await self.call('status'))['backend'],'own')
 
-    async def test_scoring_never_contacts_bosshunter(self):
+    async def test_scoring_is_local(self):
         from mcp.server.fastmcp.exceptions import ToolError
         with self.assertRaises(ToolError):
             await self.call('start_scoring',job_ids=[str(self.a)])
         preview=await self.call('preview_scoring',job_ids=[str(self.a)])
         self.assertEqual(preview['estimated_requests'],1)
         self.assertEqual((await self.call('scoring_runs'))['runs'],[])
-        for name,args in [('pending_evaluations',{}),('submit_evaluations',{'evaluations':[]})]:
-            result=await self.call(name,**args)
-            self.assertFalse(result['supported'])
 
     async def test_imported_history_does_not_replace_current_snapshot(self):
         with Store() as store:
@@ -112,7 +107,6 @@ class OwnReadTest(unittest.IsolatedAsyncioTestCase):
         before=(self.home/'jobs.sqlite3').read_bytes()
         result=await self.call('setup_check')
         self.assertTrue(result['checks']['database']['ok'])
-        self.assertNotIn('bosshunter',result['checks'])
         self.assertFalse(result['checks']['ego_spaces']['verified'])
         self.assertEqual(before,(self.home/'jobs.sqlite3').read_bytes())
         (self.home/'jobs.sqlite3').unlink()

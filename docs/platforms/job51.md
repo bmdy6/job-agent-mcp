@@ -32,7 +32,7 @@ BTY-4 真实验收使用已有 v8.4 附件：原站文件下载后的 SHA-256 �
 
 ## 范围与证据
 
-使用现有 Ego Lite 的 `job-agent 取证 B` 独立空间。没有点击「立即投递 / 立即沟通 / 发送」，没有扫码、登录、上传或更改简历。未操作空间 28 和 BossHunter。
+使用现有 Ego Lite 的 `job-agent 取证 B` 独立空间。没有点击「立即投递 / 立即沟通 / 发送」，没有扫码、登录、上传或更改简历。未操作其他任务空间。
 
 夹具在 [`mcp/tests/fixtures/platforms/job51/`](../../mcp/tests/fixtures/platforms/job51/)。JSON 是原站 DOM、Vue 状态和方法只读检查的脱敏投影，**不是实际投递 HTTP 回包**。姓名、公司、ID、附件姓名替换；class、字段类型和状态保留。隐藏弹窗明确标记为未打开，未伪造成功响应或选择项。
 
@@ -46,7 +46,7 @@ BTY-4 真实验收使用已有 v8.4 附件：原站文件下载后的 SHA-256 �
 | 招呼语/聊天 | [desktop-chat-availability.json](../../mcp/tests/fixtures/platforms/job51/desktop-chat-availability.json) | 桌面页未找到设置/编辑器 |
 | 风控 | [risk-observation.json](../../mcp/tests/fixtures/platforms/job51/risk-observation.json) | 未遇验证码/限频；没有测阈值 |
 
-原始截图、HTML、运行时方法检查原件及相应哈希，仅留本地任务目录 `evidence-private/`，不提交账号信息或完整第三方前端源码。BossHunter 仅作只读参考，本仓库没有其实现代码。
+原始截图、HTML、运行时方法检查原件及相应哈希，仅留本地任务目录 `evidence-private/`，不提交账号信息或完整第三方前端源码。外部实现仅作只读参考，本仓库没有其实现代码。
 
 ## 招呼语/首条消息上限
 

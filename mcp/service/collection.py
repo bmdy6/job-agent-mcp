@@ -1,4 +1,4 @@
-"""Collection entry points for the future own-backend MCP tools (no server edit)."""
+"""Collection entry points for the owned MCP and CLI tools."""
 import fcntl
 import os
 from pathlib import Path

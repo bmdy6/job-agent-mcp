@@ -1,4 +1,4 @@
-"""Private, local persistence. No BossHunter or network dependencies."""
+"""Private, local persistence. No network dependencies."""
 
 import hashlib
 import json
@@ -125,34 +125,3 @@ def company_save(company: str, md: str, source_url: str) -> dict:
     finally:
         Path(temporary).unlink(missing_ok=True)
     return result
-
-
-def read_events() -> list[dict]:
-    path = local_path('applications.jsonl')
-    if not path.exists():
-        return []
-    events = []
-    for number, line in enumerate(path.read_text(encoding='utf-8').splitlines(), 1):
-        if not line.strip():
-            continue
-        try:
-            event = json.loads(line)
-            if not isinstance(event, dict) or not event.get('job_id') or not event.get('event'):
-                raise ValueError('not an event object')
-        except (ValueError, TypeError) as exc:
-            raise ValueError(f'Invalid applications.jsonl at line {number}') from exc
-        events.append(event)
-    return events
-
-
-def append_event(event: dict) -> dict:
-    path = local_path('applications.jsonl')
-    private_directory(path.parent)
-    fd = os.open(path, os.O_APPEND | os.O_CREAT | os.O_WRONLY, 0o600)
-    try:
-        payload = (json.dumps(event, ensure_ascii=False) + '\n').encode('utf-8')
-        if os.write(fd, payload) != len(payload):
-            raise OSError('Incomplete application event append')
-    finally:
-        os.close(fd)
-    return event

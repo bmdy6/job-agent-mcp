@@ -1,4 +1,4 @@
-"""Private SQLite storage. No browser, network, or BossHunter dependency."""
+"""Private SQLite storage. No browser or network dependency."""
 from contextlib import contextmanager, nullcontext
 from datetime import datetime, timezone
 import os

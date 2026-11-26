@@ -1,4 +1,4 @@
-"""User-owned settings; never write BossHunter's configuration."""
+"""User-owned settings with read-only migration of obsolete configuration."""
 
 import os
 from pathlib import Path
@@ -6,7 +6,7 @@ from typing import Annotated, Literal
 from urllib.parse import urlsplit
 
 import yaml
-from pydantic import BaseModel, ConfigDict, Field, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from browser.input_config import InputSettings
 from engine.config import EngineSettings
@@ -19,10 +19,6 @@ Platform = Literal['boss', 'liepin', '51job', 'zhilian']
 
 class ConfigModel(BaseModel):
     model_config = ConfigDict(extra='forbid')
-
-
-class BossHunterSettings(ConfigModel):
-    port: int = Field(default=8686, ge=1, le=65535)
 
 
 class BrowserSettings(ConfigModel):
@@ -97,6 +93,7 @@ class DraftSettings(ConfigModel):
 class NotifySettings(ConfigModel):
     enabled: bool = False
     interval_minutes: int = Field(default=5, ge=1, le=1440, strict=True)
+    # Accepted for old user files; saved-reply notifications do not generate drafts.
     draft_reply: bool = False
     delivery_summary: bool = True
     ai: DraftSettings = Field(default_factory=DraftSettings)
@@ -134,7 +131,6 @@ class Settings(ConfigModel):
     directions: list[str] = Field(default_factory=list)
     cities: list[str] = Field(default_factory=list)
     platforms: list[Platform] = Field(default_factory=list)
-    bosshunter: BossHunterSettings = Field(default_factory=BossHunterSettings)
     browser: BrowserSettings = Field(default_factory=BrowserSettings)
 
     @field_validator('directions', 'cities')
@@ -177,7 +173,4 @@ def load_config() -> Settings:
             if not isinstance(value, dict) or (keys is not None and value.keys()-keys):
                 raise ValueError('Invalid daily.yaml section')
             data[section] = {**value, **data.get(section, {})}
-    # Retain the original adapter's override for existing registrations/tests.
-    if 'BOSSHUNTER_PORT' in os.environ:
-        data['bosshunter'] = {**data.get('bosshunter', {}), 'port': os.environ['BOSSHUNTER_PORT']}
     return Settings.model_validate(data)

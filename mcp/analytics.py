@@ -1,4 +1,4 @@
-"""BossHunter-backed funnel; local events add stages without counting event rows."""
+"""Owned funnel; application events add stages without counting event rows."""
 from applications import SENT, REPLIED
 from user_data import company_key
 
@@ -84,16 +84,16 @@ def merged_stats(stats, workbench, activity, events, jobs, group_by, thresholds)
     if (group_by or events) and len(jobs) != upstream['采集总数']:
         warnings.append('Saved job population differs from the workbench snapshot; refresh before interpreting local-event reconciliation or groups.')
     if group_by and any(sum(g[f] for g in groups) != total[f] for f in FIELDS):
-        warnings.append('BossHunter changed between snapshots; grouped counts may differ from the authoritative workbench total. Refresh after its task settles.')
+        warnings.append('Owned store changed between snapshots; grouped counts may differ from the authoritative workbench total. Refresh after its task settles.')
     labels = {'采集总数': upstream['采集总数'], '初筛通过': upstream.get('初筛通过'),
               'AI评分': upstream.get('AI评分'), '人工确认': upstream.get('人工确认'),
               '总投递': total['applied'], '回复': total['replied'], '面试邀约': total.get('interview_invited',0), '约面': total['interview_scheduled'],
               '面试完成': total['interview_done'], 'offer': total['offers'], '拒绝': total['rejected']}
     table = '| 阶段 | 岗位数 |\n| --- | --- |\n'+'\n'.join(f'| {k} | {v} |' for k, v in labels.items() if v is not None)
     return {'total': total, 'table': table, 'group_by': group_by, 'groups': groups,
-            'bosshunter': {'status_counts': stats, 'funnel': upstream}, 'activity': activity,
+            'own': {'status_counts': stats, 'funnel': upstream}, 'activity': activity,
             'warnings': warnings,
-            'semantics': 'Unique job IDs; local manual applications/interviews extend BossHunter. Interview/offer implies application and reply; rejection alone does not. Rates use applied jobs. Activity is raw daily history, not unique applications. Snapshots are not atomic.'}
+            'semantics': 'Unique job IDs; local manual applications/interviews extend Owned store. Interview/offer implies application and reply; rejection alone does not. Rates use applied jobs. Activity is raw daily history, not unique applications. Reads one consistent SQLite snapshot.'}
 
 
 def brief_reminders(jobs, events):

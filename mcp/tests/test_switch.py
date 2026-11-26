@@ -9,7 +9,7 @@ from store import SQLiteDeliveryStore
 
 class SwitchTests(unittest.TestCase):
     def test_backend_and_verified_limits(self):
-        self.assertEqual(Settings().engine.backend, 'bosshunter')
+        self.assertEqual(Settings().engine.backend, 'own')
         for p, cap in [('boss',1000),('zhilian',500),('liepin',800)]:
             with self.assertRaises(ValueError):
                 Settings.model_validate({'engine':{'backend':'own','platforms':{p:{'greeting_max_length':cap+1,'greeting':'x'*(cap+1)}}}})
@@ -75,7 +75,7 @@ class RoutingTests(unittest.IsolatedAsyncioTestCase):
     async def test_six_tools_use_own_without_http(self):
         import server
         cfg=Settings.model_validate({'engine':{'backend':'own'}})
-        with tempfile.TemporaryDirectory() as home, patch.dict(os.environ,JOB_AGENT_HOME=home),patch('issue6.load_config',return_value=cfg),patch('server.api',side_effect=AssertionError('HTTP forbidden')):
+        with tempfile.TemporaryDirectory() as home, patch.dict(os.environ,JOB_AGENT_HOME=home),patch('issue6.load_config',return_value=cfg):
             for tool,target,args in [
                 ('preview_greetings','service.mcp_backend.preview',{}),
                 ('send_greetings','service.mcp_backend.send',{'confirm_token':'test'}),

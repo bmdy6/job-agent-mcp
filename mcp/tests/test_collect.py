@@ -1,3 +1,5 @@
+import os
+from unittest.mock import patch
 import tempfile
 import unittest
 from pathlib import Path
@@ -34,6 +36,8 @@ class CollectTest(unittest.TestCase):
     def setUp(self):
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
+        env = patch.dict(os.environ, JOB_AGENT_HOME=self.temp.name)
+        env.start(); self.addCleanup(env.stop)
         self.path = Path(self.temp.name)/'jobs.sqlite3'
         self.store = Store(self.path)
         self.addCleanup(self.store.close)

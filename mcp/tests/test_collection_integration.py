@@ -40,7 +40,6 @@ class CollectionToolsTest(unittest.TestCase):
     def test_own_routes_and_confirmation(self):
         import server
         with patch('server.load_config', return_value=Settings(engine={'backend': 'own'})), \
-                patch('server.api', side_effect=AssertionError('BossHunter accessed')), \
                 patch('service.collection.check_collection', return_value={'ok': True}) as check, \
                 patch('service.collection.start_collection', return_value={'started': True}) as start:
             self.assertTrue(server.check_collection(['boss'])['ok'])
@@ -53,15 +52,6 @@ class CollectionToolsTest(unittest.TestCase):
             start.assert_called_once_with(['boss'])
             with self.assertRaises(ValueError):
                 server.check_collection(['boss', 'boss'])
-
-    def test_bosshunter_retains_preflight_and_task(self):
-        import server
-        with patch('server.load_config', return_value=Settings()), \
-                patch('server.api', side_effect=[{'ok': True}, {'ok': True}, {'id': 'task'}]) as api:
-            server.check_collection(['boss'])
-            self.assertEqual(server.start_collection(['boss'], confirm=True), {'id': 'task'})
-            self.assertEqual([c.args[0] for c in api.call_args_list],
-                             ['/api/workbench/preflight', '/api/workbench/preflight', '/api/workbench/task'])
 
     def test_check_without_browser(self):
         from service.collection import check_collection

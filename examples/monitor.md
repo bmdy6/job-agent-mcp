@@ -34,7 +34,7 @@ BOSS 使用 `uniqueId / lastMsgId / unreadCount / lastTS`。智联列表没有�
 
 安装器先把旧 watch plist、watch.sh、现有 monitor plist 与 config.yaml 备份到带时间戳的私有目录，建立新的不可变 runtime 并验证配置，然后卸载旧 watch、替换配置与 plist、启动新服务。服务名 `com.bmdy6.job-agent-monitor`，开机启动，失败/崩溃后至少 60 秒节流重启。需要本机 `uv`、Python 3 与已登录的 Ego Lite。
 
-凭据从 `~/.config/ai-vault/vault.json` 递归匹配已配置的 `bot_token_env`，只进入子进程环境；不写进仓库/plist/日志。TG chat_id 仍使用现有私有配置。安装不修改 BossHunter 本体、数据库或投递 backend。
+凭据从 `~/.config/ai-vault/vault.json` 递归匹配已配置的 `bot_token_env`，只进入子进程环境；不写进仓库/plist/日志。TG chat_id 仍使用现有私有配置。安装不更改投递数据库或投递行为。
 
 ```sh
 launchctl list | rg 'com.bmdy6.job-agent-(watch|monitor)'
@@ -45,7 +45,7 @@ launchctl bootout gui/$(id -u)/com.bmdy6.job-agent-monitor
 launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.bmdy6.job-agent-monitor.plist
 ```
 
-MCP `start_reply_monitor(confirm=true)` / `stop_reply_monitor()` 控制同一个 launchd 服务，与投递 backend 无关。`reply_monitor_status()`、`briefing`、`status` 的 monitor 字段显示 launchd PID/在线、最后完成抓取时间、逐平台 fetched/added/status。briefing/status 的其他部分在第 1 轮仍遵循现有 backend，第 2 轮再移除剩余 BossHunter 依赖。
+MCP `start_reply_monitor(confirm=true)` / `stop_reply_monitor()` 控制同一个 launchd 服务，与投递 backend 无关。`reply_monitor_status()`、`briefing`、`status` 的 monitor 字段显示 launchd PID/在线、最后完成抓取时间、逐平台 fetched/added/status。briefing/status 的其他部分读取同一自研服务。
 
 进程锁阻止多个 monitor 实例。登录失效立即告警并暂停该平台，其他平台继续；重新登录后显式重启。连续抓取失败达到阈值后每渠道只告警一次，成功恢复后重置。空间失去控制立即告警、正常退出；`KeepAlive.SuccessfulExit=false` 仅重启错误或崩溃，不会自动抢占用户空间。修复后显式 start/kickstart 恢复。
 

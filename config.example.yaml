@@ -3,10 +3,8 @@
 directions: []  # jd_requirements: literal keywords in title/JD, OR matching
 cities: []      # default jd_requirements city filter
 platforms: []   # boss, liepin, 51job, zhilian; [] = all
-bosshunter:
-  port: 8686    # host always 127.0.0.1; BOSSHUNTER_PORT overrides for compatibility
 browser:
-  name: chrome # descriptive; ego-lite also verified (see docs/browser.md)
+  name: ego-lite # the running Ego Lite instance (see docs/browser.md)
   cdp_url: http://127.0.0.1:9222
   keepalive_seconds: 300 # own Ego engine; 0 disables; idle control vanished at 25–30 min
 # Browser settings are exposed by status; own browser access goes through Ego Lite.
@@ -51,7 +49,6 @@ scoring:
 notify:
   enabled: false
   interval_minutes: 5
-  draft_reply: false
   delivery_summary: true # completed/failed deliver summaries to enabled Telegram channels
   channels:
     telegram:
@@ -74,13 +71,9 @@ notify:
     #   type: webhook
     #   enabled: false
     #   url_env: JOB_AGENT_WEBHOOK_URL
-  ai:
-    base_url: https://api.openai.com/v1
-    model: "" # required only when draft_reply=true
-    api_key_env: OPENAI_API_KEY
-    resume_path: ~/.job-agent/resume.md # explicit main résumé, UTF-8 Markdown/text
 
-# own MCP/CLI 共用自建服务；bosshunter 仅作可选兼容后端。
+
+# MCP/CLI 共用自建服务；backend 仅接受 own。
 engine:
   backend: own
   cooldown:
@@ -99,7 +92,7 @@ engine:
     interval_minutes: 5
     failure_threshold: 3
     platforms: [boss, zhilian, liepin, "51job"]
-  task_space_name: "job-agent 投递" # resolve/create by name; never use BossHunter space 28
+  task_space_name: "job-agent 投递" # resolve/create by name; use a dedicated Agent-owned space
   timezone: Asia/Shanghai # calendar day for per-platform attempt budgets
   platforms:
     boss:

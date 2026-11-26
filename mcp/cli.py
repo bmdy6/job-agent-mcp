@@ -1,31 +1,13 @@
-"""job-agent CLI; watch never starts or writes to BossHunter."""
+"""job-agent CLI for owned services and saved-reply notifications."""
 import argparse
 import json
 import logging
 import time
-from http.client import HTTPConnection, HTTPException
 
 from config import load_config
 from watch import poll_once
 
 log = logging.getLogger(__name__)
-
-
-def boss_get(path, port):
-    if not (path.startswith('/api/jobs?') or path.startswith('/api/history?') or path == '/api/workbench'):
-        raise ValueError('watch only supports saved jobs/history/workbench reads')
-    connection = HTTPConnection('127.0.0.1', port, timeout=25)
-    try:
-        connection.request('GET', path)
-        response = connection.getresponse()
-        if response.status != 200:
-            raise ValueError('BossHunter read failed HTTP '+str(response.status))
-        return json.loads(response.read())
-    except (OSError, HTTPException):
-        raise RuntimeError('BossHunter read unavailable') from None
-    finally:
-        connection.close()
-
 
 
 def _setup_logging(command):
@@ -67,15 +49,13 @@ def main(argv=None):
     local_review.add_argument('--database', help='Owned database to open read-only')
     heartbeat = sub.add_parser('heartbeat', help='Alert once when the monitor or daily run goes quiet; never opens a browser')
     heartbeat.add_argument('--once', action='store_true', required=True)
-    watch = sub.add_parser('watch', help='Read saved replies and delivery results; notify configured user channels')
+    dashboard = sub.add_parser('dashboard', help='Generate one private offline HTML from the read-only local database')
+    dashboard.add_argument('--out', help='Output HTML; default $JOB_AGENT_HOME/dashboard.html')
+    watch = sub.add_parser('watch', help='Notify configured Telegram channels from owned saved replies')
     watch.add_argument('--once', action='store_true', help='Poll once and exit; default is every configured N minutes')
-    watch.add_argument('--source', choices=('bosshunter', 'replies'), default='bosshunter')
+    watch.add_argument('--source', choices=('replies',), default='replies')
     monitor = sub.add_parser('monitor', help='Poll platform replies read-only using a dedicated Ego Lite space')
     monitor.add_argument('--once', action='store_true')
-    importer = sub.add_parser('import-bosshunter', aliases=['sync-bosshunter'], help='Import saved BossHunter data read-only into the owned SQLite store')
-    importer.add_argument('--source', type=str, help='BossHunter SQLite path (opened mode=ro)')
-    importer.add_argument('--database', type=str, help='Destination; default $JOB_AGENT_HOME/jobs.sqlite3')
-    importer.add_argument('--source-id', default='bosshunter', help='Stable namespace for one source database')
     deliver = sub.add_parser('deliver', help='Preview and confirm an isolated delivery batch')
     action = deliver.add_mutually_exclusive_group(required=True)
     action.add_argument('--preview', action='store_true')
@@ -84,6 +64,16 @@ def main(argv=None):
     deliver.add_argument('--job-ids', type=int, nargs='+', help='Owned database row IDs for preview')
     deliver.add_argument('--notify', action='store_true', help='Explicit Telegram opt-in; forbidden for dry-run')
     args = parser.parse_args(argv)
+    if args.command == 'dashboard':
+        from service.dashboard import generate
+        try:
+            print(json.dumps({'path': generate(args.out)}, ensure_ascii=False))
+            return 0
+        except Exception as error:
+            # No log/config/runtime writes; errors expose type only.
+            import sys
+            print('dashboard failed: '+type(error).__name__, file=sys.stderr)
+            return 1
     _setup_logging(args.command)
     if args.command == 'heartbeat':
         import config as config_module
@@ -169,32 +159,12 @@ def main(argv=None):
     if args.command == 'monitor':
         from monitor.runtime import run
         return run(once=args.once)
-    if args.command in {'import-bosshunter', 'sync-bosshunter'}:
-        from pathlib import Path
-        from store import Store, default_path
-        from store.bosshunter import DEFAULT_SOURCE, import_bosshunter
-        try:
-            source = Path(args.source or DEFAULT_SOURCE).expanduser().resolve()
-            destination = Path(args.database or default_path()).expanduser().resolve()
-            if source == destination or (source.exists() and destination.exists() and source.samefile(destination)):
-                raise ValueError('Source must differ from destination')
-            with Store(destination) as store:
-                result = import_bosshunter(store, args.source or DEFAULT_SOURCE, source_id=args.source_id)
-            print(json.dumps(result, ensure_ascii=False))
-            return 0
-        except Exception as error:
-            log.error('import failed error_type=%s', type(error).__name__)
-            return 1
     try:
         while True:
             try:
-                if args.source == 'replies':
-                    from monitor.config import load_settings
-                    config, _ = load_settings()
-                    result = poll_once(config=config, source='replies')
-                else:
-                    config = load_config()
-                    result = poll_once(lambda path: boss_get(path, config.bosshunter.port), config)
+                from monitor.config import load_settings
+                config, _ = load_settings()
+                result = poll_once(config=config)
             except Exception as error:
                 # YAML/provider exceptions may contain secrets; log type only.
                 log.error('watch poll failed error_type=%s', type(error).__name__)

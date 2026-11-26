@@ -72,8 +72,7 @@ class ServiceTests(unittest.TestCase):
         async def check():
             with patch('service.monitor.start', return_value={'running': True}) as start, \
                  patch('service.monitor.stop', return_value={'stopped': True}) as stop, \
-                 patch('service.monitor.status', return_value={'running': True, 'last_poll_at': 123}) as status, \
-                 patch.object(server, 'api', side_effect=AssertionError('legacy HTTP forbidden')):
+                 patch('service.monitor.status', return_value={'running': True, 'last_poll_at': 123}) as status:
                 with self.assertRaises(Exception):
                     await server.mcp.call_tool('start_reply_monitor', {'confirm': False})
                 start.assert_not_called()

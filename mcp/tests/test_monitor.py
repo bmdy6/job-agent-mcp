@@ -166,7 +166,7 @@ class MonitorTests(unittest.TestCase):
         self.assertGreater(self.sender.call_count, 1)
         chunks = [call.args[2].split('HR 回复：\n', 1)[1] for call in self.sender.call_args_list]
         self.assertEqual(''.join(chunks), body)
-        self.assertEqual(poll_once(None, self.config, source='replies', store=self.store)['sent'], 0)
+        self.assertEqual(poll_once(self.config, source='replies', store=self.store)['sent'], 0)
     def test_shutdown_on_cli_once_and_keyboard_interrupt(self):
         from cli import main
         from monitor.runtime import run
@@ -177,7 +177,7 @@ class MonitorTests(unittest.TestCase):
             self.assertEqual(run(once=False), 0)
         self.assertEqual(len(self.browser.shut), 2)
 
-    def test_config_and_watch_cli_never_read_bosshunter(self):
+    def test_config_and_watch_cli_use_owned_replies(self):
         from cli import main
         from monitor.config import load_settings
         import contextlib
@@ -186,7 +186,7 @@ class MonitorTests(unittest.TestCase):
         config, settings = load_settings()
         self.assertEqual(settings.interval_minutes, 12)
         self.assertEqual(settings.failure_threshold, 4)
-        with patch('cli.boss_get', side_effect=AssertionError('must not read BossHunter')), contextlib.redirect_stdout(io.StringIO()):
+        with contextlib.redirect_stdout(io.StringIO()):
             self.assertEqual(main(['watch', '--source', 'replies', '--once']), 0)
         (self.home/'config.yaml').write_text('engine:\n  monitor:\n    task_space_name: job-agent 投递\n')
         with self.assertRaises(ValueError):

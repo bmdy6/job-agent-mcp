@@ -4,7 +4,7 @@
 
 ## 一句话
 
-job-agent 是一个本机 Python 进程。它通过 Ego Lite 操作四个招聘平台的网页，数据全部存在 `~/.job-agent/jobs.sqlite3`，对外只暴露 MCP 工具和 Telegram 推送。不依赖 BossHunter。
+job-agent 是一个本机 Python 进程。它通过 Ego Lite 操作四个招聘平台的网页，数据全部存在 `~/.job-agent/jobs.sqlite3`，对外只暴露 MCP 工具和 Telegram 推送。使用自研后端。
 
 ## 分层
 
@@ -86,13 +86,11 @@ preview_greetings → batches（待确认）
 - 独立进程（launchd），每 N 分钟（默认 10）轮询四个平台的聊天列表。
 - 只认已投岗位，排除自己发的和系统卡片，按 `(platform, message_id)` 去重写 `replies`，新消息推 TG（公司、岗位、原文、链接）。
 - 不自动回复 HR，不自动发简历。
-- 现有 `watch.py` 和 `notify.py` 改成读 `replies` 表，不再读 BossHunter。
+- `watch.py` 从 `replies` 表通知，`notify.py` 提供用户通知传输。
 
-## 切换
+## 运行与迁移
 
-1. 适配器写完、单测过 → 每平台用 1 个用户确认的岗位真投验证。
-2. 验证通过 → `send_greetings` 等 MCP 工具切到新引擎，BossHunter 只留监听。
-3. 新监听跑一天，和 BossHunter 一致 → 停 BossHunter，README 去掉依赖。
+所有入口直接使用自研服务。历史状态保留，配置迁移与已删除接口见 [BTY-10](migrations/BTY-10.md)。原站验收、服务安装和生产部署仍是独立操作。
 
 ## 第二轮生命周期修正
 
@@ -107,16 +105,16 @@ preview_greetings → batches（待确认）
 
 ## 全部 MCP 工具切到自研
 
-`engine.backend: own` 时，所有 MCP 工具都只读写 `~/.job-agent/jobs.sqlite3` 和自研引擎，不再调 `127.0.0.1:8686`：search_jobs、get_job、jd_requirements、briefing、status、funnel_stats、company_history、check_collection/start_collection、preview/send、delivery_status/stop、监听启停。`preview_scoring` / `start_scoring` / `scoring_runs` 已迁入自有评分服务。旧 BossHunter 代评接口 `pending_evaluations` / `submit_evaluations` 保持 unsupported，不访问 BossHunter。
+`engine.backend` 只接受 `own`。所有 MCP 工具都只读写 `~/.job-agent/jobs.sqlite3` 和自研引擎，不再调 `127.0.0.1:8686`：search_jobs、get_job、jd_requirements、briefing、status、funnel_stats、company_history、check_collection/start_collection、preview/send、delivery_status/stop、监听启停。`preview_scoring` / `start_scoring` / `scoring_runs` 已迁入自有评分服务。旧代评接口已删除。
 
 
 ## 评分（#48，11-26）
 
-落实 Issue #1 的 11-26 分层边界：`server.py` 只路由，`service/scoring.py` 编排材料、授权、串行模型请求和结果校验，`store/scoring.py` 管理所有评分 SQL。配置在 `scoring_config.py`，由主配置的 `scoring:` 段加载。评分无需浏览器、平台选择器或 BossHunter HTTP。
+落实 Issue #1 的 11-26 分层边界：`server.py` 只路由，`service/scoring.py` 编排材料、授权、串行模型请求和结果校验，`store/scoring.py` 管理所有评分 SQL。配置在 `scoring_config.py`，由主配置的 `scoring:` 段加载。评分无需浏览器或平台选择器。
 
 - schema migration 4 在唯一 SQLite 内新增 `scoring_runs`、`scoring_items`、`job_scores`，通过现有 `schema_migrations` 事务执行；不继续增加隐式 schema extension。v3 已有 jobs/投递/回复和旧评分字段原样保留。先备份并升级旧监听/每日运行目录，再迁移生产库；旧运行时拒绝 v4 是明确的升级边界。
 - preview 是只读快照，列出预计付费请求数、全库待评分数和跳过原因。start 只接受布尔 `confirm=true`，校验材料与凭据后原子占用岗位，复用 `service/tasks.py` 启动 scoring worker；同一个岗位不能被并发重复评分。
 - worker 使用确认时的主简历/经历和 JD 快照；执行前复核评分配置哈希。缺 JD、已过滤、已删除和已导入评分的岗位不请求模型。运行完成移除材料快照，保留输入哈希和模型/服务等级/用量；简历、JD、密钥不进入 Git 或任务日志。
 - 原生分数通过查询投影参与搜索、详情、briefing、分数分组和每日候选排序；不会覆盖导入的 legacy_score/reason，不会改变投递队列、授权、风控暂停或发送规则。
 - 每批上限默认10（配置可调低），串行单次请求，不自动重试。首先单条查看额度；后续余额缺失/不足就阻塞该项。模型 JSON 必须有合法整数分数和非空理由；失败不伪造零分。未知请求结果保留占位，人工核对后再处理，进程重启不自动付费重放。
-- `setup_check` 的 own 分支只检查本地资源；不会因没有 BossHunter 进程而失败。`daily.enabled`、回复发送与跟进授权保持现有边界。
+- `setup_check` 检查本地资源及配置的 Ego 登录会话。`daily.enabled`、回复发送与跟进授权保持现有边界。

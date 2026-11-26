@@ -20,4 +20,4 @@ schema v3 增量接续 #21 v2：回复按 (platform,message_id) 唯一，历史�
 
 监听工厂使用无参 ReplySource()；回复链接存入 SQLite，旧 monitor-state 链接只作读兼容。猎聘仍缺真实雇主收件映射验收；51job 正文入口未验证，回复源保持显式失败。
 
-shutdown 仅关当前进程创建的临时页，保留锚点和 Agent 所有权，不 finish。不操作 BossHunter 或其空间。
+shutdown 仅关当前进程创建的临时页，保留锚点和 Agent 所有权，不 finish。不操作其他服务或空间。

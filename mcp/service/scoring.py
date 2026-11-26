@@ -144,7 +144,6 @@ def preview_scoring(job_ids):
 def start_scoring(job_ids,confirm=False):
     if confirm is not True: raise ValueError('启动评分需要用户授权，先预览请求数，授权后传入 confirm=true。')
     config=load_config()
-    if config.engine.backend!='own': raise ValueError('Own scoring requires backend=own')
     settings=config.scoring; ids=validate_ids(job_ids,settings)
     material=materials(settings); resolve_key(settings)  # fail before reserving/spawning
     from . import tasks
@@ -181,7 +180,7 @@ def execute_run(run_id,should_stop=lambda:False):
         run=sql.run(store,run_id)
         if not sql.begin_run(store,run_id): return sql.public_run(store,run_id)
         try:
-            if load_config().engine.backend!='own' or run['config_hash']!=digest(settings.model_dump()):
+            if run['config_hash']!=digest(settings.model_dump()):
                 raise ValueError('scoring_config_changed')
             key=resolve_key(settings); material=json.loads(run['materials_json'])
             remaining=None; attempted=False

@@ -54,20 +54,6 @@ class UserDataTest(unittest.TestCase):
             with self.assertRaises(ValueError):
                 data.company_save(name, md, url)
 
-    def test_append_and_corrupt_events(self):
-        self.assertEqual(data.read_events(), [])
-        data.append_event({'job_id': 'example:1', 'event': 'greeted'})
-        data.append_event({'job_id': 'example:1', 'event': 'replied'})
-        self.assertEqual(len(data.read_events()), 2)
-        path = Path(self.temp.name, 'applications.jsonl')
-        self.assertEqual(path.stat().st_mode & 0o777, 0o600)
-        path.write_text(path.read_text()+'bad json\n')
-        with self.assertRaisesRegex(ValueError, 'line 3'):
-            data.read_events()
-        path.write_text('[]\n')
-        with self.assertRaises(ValueError):
-            data.read_events()
-
     def test_paths_cannot_escape_home(self):
         with tempfile.TemporaryDirectory() as other:
             Path(self.temp.name, 'experience').symlink_to(other, target_is_directory=True)
@@ -75,7 +61,7 @@ class UserDataTest(unittest.TestCase):
                 data.experience_add('safe', 'text')
             Path(self.temp.name, 'applications.jsonl').symlink_to(Path(other, 'events'))
             with self.assertRaises(ValueError):
-                data.append_event({'event': 'greeted'})
+                data.local_path('applications.jsonl')
         # Punctuation in company names cannot become path separators.
         data.company_save('../a/b', 'x', 'https://example.invalid')
         self.assertEqual(data.company_get('../a/b')['md'], 'x')

@@ -2,7 +2,7 @@
 
 # #15 C：投递引擎离线骨架
 
-本轮只提供可恢复队列和假件。不连接 Ego Lite，不投递，不读取 BossHunter 源码或数据库。不改变 `preview_greetings`、`send_greetings`、`delivery_status`、`stop_delivery` 及现有通知链路。真实入口即使配置 `dry_run: false` 也会拒绝，等待 P0 适配器及既有一次性确认批次绑定后再接通。
+本轮只提供可恢复队列和假件。不连接 Ego Lite，不投递，不读取外部源库。不改变 `preview_greetings`、`send_greetings`、`delivery_status`、`stop_delivery` 及现有通知链路。真实入口即使配置 `dry_run: false` 也会拒绝，等待 P0 适配器及既有一次性确认批次绑定后再接通。
 
 ## 离线运行
 

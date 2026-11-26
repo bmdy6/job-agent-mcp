@@ -127,8 +127,6 @@ def daily_once(*, config=None, max_per_platform=None, collect_fn=None, confirm_f
     home=job_agent_home()
     if not config.daily.enabled:
         return {'disabled':True}
-    if config.engine.backend!='own':
-        raise ValueError('Daily workflow requires own backend')
     if config.daily.deliver_enabled and (config.engine.dry_run or not config.engine.live_send_enabled):
         raise ValueError('Daily delivery requires explicit live opt-in')
     if config.collect.task_space_name in {config.engine.task_space_name,config.engine.monitor.task_space_name}:

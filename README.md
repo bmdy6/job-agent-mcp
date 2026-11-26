@@ -37,7 +37,7 @@ uv sync --project mcp
 | 确认投递 | `preview_greetings` → 展示完整批次 → 用户确认 → `send_greetings`；原站回执与原因码 |
 | 回复与统计 | `start_reply_monitor` 需独立授权；新回复去重推 TG，`delivery_status` / `funnel_stats` 查进度与漏斗 |
 
-[工具和配置细节](docs/usage.md) · [Agent 技能](skills/README.md) · [浏览器生命周期](docs/browser.md) · [每日任务](docs/daily/README.md)。BossHunter 仅为[可选兼容后端](docs/bosshunter.md)，own 模式不依赖它。
+[工具和配置细节](docs/usage.md) · [Agent 技能](skills/README.md) · [浏览器生命周期](docs/browser.md) · [每日任务](docs/daily/README.md)。仅保留自研后端，旧配置处理见[迁移说明](docs/migrations/BTY-10.md)。
 
 ## 当前进度
 

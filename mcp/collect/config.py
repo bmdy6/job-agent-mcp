@@ -1,4 +1,4 @@
-"""Collection settings, independent of delivery and BossHunter."""
+"""Collection settings, independent of delivery."""
 from engine.rate import RatePolicy
 from typing import Literal
 from zoneinfo import ZoneInfo
