@@ -157,6 +157,16 @@ class EngineTest(unittest.TestCase):
                 self.assertEqual(store.records()[1].status, Status.PENDING)
                 self.assertEqual(adapter.calls.count('open_job'), 1)
 
+    def test_refusal_before_any_click_is_skipped_and_batch_continues(self):
+        from unittest.mock import patch
+        from platforms.boss.pages import NotStarted
+        self.engine.enqueue(self.jobs())
+        with patch.object(self.adapter, 'send_greeting', side_effect=[NotStarted('目标公司和岗位不可读；不开始沟通'), None]):
+            self.engine.run()
+        first, second = self.store.records()[:2]
+        self.assertEqual((first.status, first.reason), (Status.SKIPPED, Reason.NOT_STARTED))
+        self.assertNotEqual(second.status, Status.PENDING)
+
     def test_effect_exception_blocks_and_closes(self):
         from unittest.mock import patch
         self.engine.enqueue(self.jobs())

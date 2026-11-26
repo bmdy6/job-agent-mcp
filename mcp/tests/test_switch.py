@@ -44,7 +44,7 @@ class ConfirmationTests(unittest.TestCase):
                 db.add(Job('boss','boss','https://example.com/boss'))
                 token=json.loads(preview(db,cfg,job_ids=ids))['token']
                 text=confirm(db,cfg,token,exclude_ids=[str(ids[0])])
-                self.assertIn('sent 1',text)
+                self.assertIn('成功 1',text)
                 self.assertEqual(db.records()[0].status,Status.PENDING)
                 self.assertEqual(db.list_deliveries()[-1]['attachment_name'],'resume')
 

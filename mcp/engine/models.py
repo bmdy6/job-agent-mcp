@@ -38,6 +38,7 @@ class Reason(str, Enum):
     RECEIPT_UNKNOWN = 'receipt_unknown'  # No positive final receipt; do not retry.
     APPLICATION_CONFIRMED = 'application_confirmed_greeting_unknown'  # Original application proven; full greeting not yet verified.
     EFFECT_ERROR = 'effect_error'  # Exception after the effect boundary; outcome uncertain.
+    NOT_STARTED = 'not_started'  # Adapter refused before any click; nothing was sent.
 
 
 @dataclass(frozen=True)

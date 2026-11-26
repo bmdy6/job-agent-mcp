@@ -31,7 +31,7 @@ class IntegrationServiceTests(unittest.TestCase):
         with patch('service.deliver.TelegramAdapter.send') as send:
             text = confirm(self.db,self.config,token)
             send.assert_not_called()
-        self.assertIn('sent 4',text)
+        self.assertIn('成功 4',text)
         self.assertIn('未投递',text)
         self.assertEqual(self.db.get_batch(token)['status'],'executed')
         self.assertEqual(next(r for r in self.db.records() if r.job.job_id=='outside').status,Status.PENDING)
@@ -97,7 +97,7 @@ class IntegrationServiceTests(unittest.TestCase):
         self.db.add(old)
         self.db.update(old,Status.UNVERIFIED,Reason.EFFECT_ERROR)
         token=json.loads(preview(self.db,self.config,job_ids=self.ids))['token']
-        self.assertIn('sent 4',confirm(self.db,self.config,token))
+        self.assertIn('成功 4',confirm(self.db,self.config,token))
 
     def test_telegram_summary_transport_is_explicit_and_mocked(self):
         from service.deliver import send_summary
@@ -118,7 +118,7 @@ class IntegrationServiceTests(unittest.TestCase):
                 db.update(job,Status.SENT,Reason.NONE)
             with patch('service.safety.PlatformSafety.require'), patch('engine.rate.RateLimiter.acquire'), patch.object(DeliveryEngine,'_deliver',simulate), patch('engine.spaces.TaskSpaces.shutdown') as shutdown, patch('service.deliver.send_summary') as notify:
                 text=confirm(db,cfg,token,notify=True)
-                self.assertIn('sent 1',text)
+                self.assertIn('成功 1',text)
                 notify.assert_called_once()
                 shutdown.assert_called_once_with(cfg.engine.task_space_name)
             self.assertEqual(db.get_batch(token)['status'],'executed')

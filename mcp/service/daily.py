@@ -14,7 +14,7 @@ from config import job_agent_home, load_config
 from engine.models import PLATFORMS, Status, Reason
 from engine.resume_contract import resume_block_reason
 from store import SQLiteDeliveryStore
-from service.deliver import preview, confirm
+from service.deliver import preview, confirm, DETAIL_MARK
 from notify import TelegramAdapter
 from delivery_summary import notification
 
@@ -53,6 +53,9 @@ def save(home, result):
     os.replace(temp,path)
 
 
+NON_BLOCKING_COLLECTION_ERRORS = frozenset({'collection_timeout'})
+
+
 def delivery_message(report):
     stats=report['delivery']
     success=sum(s['sent'] for s in stats.values())
@@ -83,6 +86,9 @@ def delivery_message(report):
             lines.append(f"  规划排除（不占本轮选择）：{planning_labels.get(reason,reason)} {count}")
         if s.get('execution_error'):
             lines.append(f"  执行中断：{s['execution_error']}，已停止本轮后续投递")
+    if report.get('delivery_details'):
+        lines.append('明细：')
+        lines.extend(l for l in report['delivery_details'] if not l.startswith('口径：'))
     return title,'\n'.join(lines)
 
 
@@ -122,7 +128,10 @@ def daily_once(*, config=None, max_per_platform=None, collect_fn=None, confirm_f
                     result['notifications']['collection_error']=type(e).__name__
             save(home,result)
             paused=store.paused_platforms()
-            blocked={p for p,s in result['collection'].get('platforms',{}).items() if s.get('error')} | paused.keys()
+            # A collection timeout only means collection stopped early: jobs already saved
+            # (and older candidates) stay deliverable. Risk/login/space errors still block.
+            blocked={p for p,s in result['collection'].get('platforms',{}).items()
+                     if s.get('error') and s.get('error') not in NON_BLOCKING_COLLECTION_ERRORS} | paused.keys()
             resume_blocks={p:reason.value for p,cfg in config.engine.platforms.items() if cfg.enabled
                            and (reason:=resume_block_reason(p,cfg))}
             blocked.update(resume_blocks)
@@ -164,7 +173,9 @@ def daily_once(*, config=None, max_per_platform=None, collect_fn=None, confirm_f
                             result.setdefault('batches',{}).setdefault(p,[]).append(token)
                         save(home,result)
                         try:
-                            confirm_fn(store,config,token,daily=True)
+                            text=confirm_fn(store,config,token,daily=True)
+                            if isinstance(text,str) and DETAIL_MARK in text:
+                                report.setdefault('delivery_details',[]).extend(text.split(DETAIL_MARK,1)[1].strip().splitlines())
                         except Exception as e:
                             result.setdefault('errors',[]).append(dict(platform=','.join(sorted(platforms)),error=type(e).__name__))
                             for p in platforms: result['delivery'][p]['execution_error']=type(e).__name__

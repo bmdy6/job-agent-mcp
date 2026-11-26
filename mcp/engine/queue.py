@@ -197,6 +197,10 @@ class DeliveryEngine:
             else:
                 self.store.update(job, Status.UNVERIFIED, Reason.RECEIPT_UNKNOWN)
         except Exception as exc:
+            if getattr(exc,'code','') == 'not_started':
+                # The adapter proved nothing was clicked; this is a skip, not an unknown outcome.
+                self.store.update(job, Status.SKIPPED, Reason.NOT_STARTED, error_detail=str(exc)[:2000])
+                return
             if getattr(exc,'code','') in {'risk_control','unexpected_redirect'} and self.safety is not None:
                 # Keep the original unverified/effect boundary; persistence precedes notification.
                 self.safety.repo.pause(job.platform,getattr(exc,'code'))

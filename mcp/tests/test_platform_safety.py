@@ -166,7 +166,7 @@ class RiskAndCleanupTest(unittest.TestCase):
             self.assertEqual(records['zhilian'].status,Status.PENDING)
             self.assertIsNone(records['zhilian'].attempted_at)
             self.assertEqual(records['boss'].status,Status.SENT)
-            self.assertNotIn('https://',text)
+            self.assertIn('待续：未登录',text)
 
 class EntryPointTest(unittest.IsolatedAsyncioTestCase):
     async def test_setup_check_mcp_exposes_login_results_without_modifying_database(self):

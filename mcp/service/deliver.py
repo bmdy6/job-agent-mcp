@@ -78,15 +78,64 @@ def preview(store, config, *, job_ids=None, daily=False):
                        'delivery_holds': holds, 'config_hash': batch['config_hash']}, ensure_ascii=False, indent=2)
 
 
-def summary(records, *, dry_run):
+PLATFORM_LABELS = {'boss': 'BOSS', 'zhilian': '智联', 'liepin': '猎聘', '51job': '51job'}
+STATUS_LABELS = {'sent': '成功', 'unverified': '不明', 'failed': '失败', 'skipped': '跳过', 'pending': '待续'}
+STATUS_MARKS = {'sent': '✅', 'unverified': '⚠️', 'failed': '❌', 'skipped': '⏭', 'pending': '⏸'}
+REASON_LABELS = {
+    'cooldown': '30 天内投过同一公司/HR', 'job_unavailable': '岗位已关闭', 'daily_limit': '今日额度已用完',
+    'hourly_limit': '本小时额度已用完', 'outside_hours': '不在投递时段', 'already_applied': '原站显示已投过',
+    'login_required': '未登录', 'risk_control': '原站风控', 'session_unknown': '登录状态未知',
+    'account_type': '账号类型不符', 'task_space': '浏览器空间不可用', 'attachment': '附件不匹配',
+    'precheck_error': '发送前检查失败，未发送', 'resume_flow_unverified': '简历投递流程未验收',
+    'resume_attachment_required': '缺少附件简历配置', 'interrupted': '执行中断，结果未知',
+    'receipt_unknown': '已执行，未拿到原站回执', 'effect_error': '执行中出错，结果未知',
+    'application_confirmed_greeting_unknown': '原站已确认申请，招呼语未确认', 'disabled': '平台已关闭',
+    'not_implemented': '平台未支持', 'not_started': '发送前拦下，未发送'}
+DETAIL_MARK = '—— 明细 ——'
+
+
+def job_details(store, records):
+    """Company/title/salary/city for each record; empty when the store cannot be read."""
+    connection = getattr(store, 'connection', None)
+    out = {}
+    if connection is None:
+        return out
+    for r in records:
+        try:
+            row = connection.execute('SELECT company,title,salary,city FROM jobs WHERE platform=? AND platform_job_id=?',
+                                     (r.job.platform, r.job.job_id)).fetchone()
+        except Exception:
+            return out
+        if row:
+            out[(r.job.platform, r.job.job_id)] = dict(company=row[0] or '', title=row[1] or '',
+                                                       salary=row[2] or '', city=row[3] or '')
+    return out
+
+
+def job_line(record, detail):
+    d = detail or {}
+    status = record.status.value
+    head = '｜'.join(x for x in (d.get('company'), d.get('title'), d.get('salary'), d.get('city')) if x) or record.job.job_id
+    result = STATUS_LABELS.get(status, status)
+    reason = REASON_LABELS.get(record.reason.value, record.reason.value) if record.reason.value else ''
+    if reason:
+        result += f'：{reason}'
+    return [f'{STATUS_MARKS.get(status, "•")} {head} — {result}', f'   {record.job.url}']
+
+
+def summary(records, *, dry_run, details=None):
+    details = details or {}
     counts = Counter(r.status.value for r in records)
     lines = [('DRY-RUN 模拟汇总（未投递、未发消息）' if dry_run else '投递汇总'),
-             ' / '.join(f'{s.value} {counts[s.value]}' for s in Status)]
+             ' · '.join(f'{STATUS_LABELS[s.value]} {counts[s.value]}' for s in Status if s.value in STATUS_LABELS),
+             DETAIL_MARK]
+    for platform in dict.fromkeys(r.job.platform for r in records):
+        lines.append(f'【{PLATFORM_LABELS.get(platform, platform)}】')
+        for r in records:
+            if r.job.platform == platform:
+                lines.extend(job_line(r, details.get((platform, r.job.job_id))))
     if not dry_run:
-        lines.append('成功表示对应平台动作回执；BOSS 沟通不等于简历送达，猎聘招呼语不计简历成功。')
-    for r in records:
-        lines.append(f'{r.job.platform} {r.job.job_id}: {r.status.value} '
-                     f'{r.reason.value}'.strip())
+        lines.append('口径：BOSS 的成功是沟通回执，不等于简历送达；猎聘只算正式简历回执。')
     return '\n'.join(lines)
 
 
@@ -128,7 +177,7 @@ def confirm(store, config, token, *, notify=False, exclude_ids=None, should_stop
     records = [r for r in records if r.job in jobs]
     if all(r.status != Status.PENDING for r in records):
         store.complete_batch(token)
-    text = summary(records, dry_run=cfg.dry_run)
+    text = summary(records, dry_run=cfg.dry_run, details=job_details(store, records))
     if notify:
         send_summary(config, text)
     return text

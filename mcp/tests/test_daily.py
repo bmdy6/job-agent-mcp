@@ -253,6 +253,22 @@ class DailyRoundTest(DailyQueueTest):
         self.assertEqual(r['delivery']['boss']['stop_reason'],'collection_error_or_previous_batch_stop')
 
 
+    def test_collection_timeout_does_not_block_delivery(self):
+        import os
+        from unittest.mock import patch
+        from service.daily import daily_once
+        collect=lambda:{'platforms':{'boss':{'error':'collection_timeout','pages':1}},'failed':1}
+        calls=[]
+        def confirm(store,config,token,daily=False):
+            calls.append(token)
+            return ''
+        self.job('old')
+        with patch.dict(os.environ,{'JOB_AGENT_HOME':self.tmp.name}):
+            r=daily_once(config=self.cfg,collect_fn=collect,confirm_fn=confirm)
+        self.assertNotEqual(r['delivery']['boss'].get('stop_reason'),'collection_error_or_previous_batch_stop')
+        self.assertTrue(calls)
+
+
 class CompatibilityTest(unittest.TestCase):
     def test_daily_extension_survives_scoring_migration(self):
         from store import Store

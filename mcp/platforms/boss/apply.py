@@ -176,10 +176,10 @@ class BossAdapter:
             raise pages.PlatformStateError('已沟通，禁止重复申请')
         self.target = self.page.evaluate(pages.JOB_IDENTITY_JS)
         if not isinstance(self.target,dict) or not self.target.get('company') or not self.target.get('title'):
-            raise pages.PlatformStateError('目标公司和岗位不可读；不开始沟通')
+            raise pages.NotStarted('目标公司和岗位不可读；不开始沟通')
         prior={t.label for t in self.space.tabs()}
         if self.page.label not in prior:
-            raise pages.PlatformStateError('原始页无法核验；不开始沟通')
+            raise pages.NotStarted('原始页无法核验；不开始沟通')
         self.greeting,self.attempted,self.attempted_at=greeting,True,time()
         phase='start_contact'
         try:

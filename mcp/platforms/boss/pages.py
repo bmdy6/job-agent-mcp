@@ -13,6 +13,11 @@ class JobUnavailable(PlatformStateError):
     code = "job_unavailable"
 
 
+class NotStarted(PlatformStateError):
+    """Refused before any click on the site: nothing can have been sent."""
+    code = "not_started"
+
+
 class LoginRequired(PlatformStateError):
     code = "login_required"
 
