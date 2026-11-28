@@ -4,13 +4,13 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from browser.base import BrowserError, FakeBrowser
-from config import Settings
-from collect.config import CollectSettings
-from collect.runner import Collector
-from platforms.base import JobListing
-from store import Store
-from store.collection import CollectionRepository
+from job_agent.browser.base import BrowserError, FakeBrowser
+from job_agent.config import Settings
+from job_agent.config.collect import CollectSettings
+from job_agent.collect.runner import Collector
+from job_agent.platforms.base import JobListing
+from job_agent.store import Store
+from job_agent.store.collection import CollectionRepository
 
 
 class Source:
@@ -160,7 +160,7 @@ class MoreCollectTest(unittest.TestCase):
         self.assertEqual(self.store.get_job(row_id)['legacy_score'], 90)
 
     def test_space_takeover_stops_all_sources(self):
-        from browser.base import SpaceUnavailable
+        from job_agent.browser.base import SpaceUnavailable
         self.browser.unavailable.add(self.settings.task_space_name)
         bad, good = Source(), Source('liepin')
         result = self.run_collect([bad, good])
@@ -194,10 +194,10 @@ class RuntimeCollectTest(unittest.TestCase):
     def test_dry_run_never_uses_live_browser_or_production_db(self):
         import os
         from unittest.mock import patch
-        from collect.runtime import collect_once
+        from job_agent.collect.runtime import collect_once
         with tempfile.TemporaryDirectory() as home, patch.dict(os.environ, {'JOB_AGENT_HOME': home}), \
-                patch('browser.ego.EgoBrowser', side_effect=AssertionError('live browser')), \
-                patch('notify.send_one', side_effect=AssertionError('notification')):
+                patch('job_agent.browser.ego.EgoBrowser', side_effect=AssertionError('live browser')), \
+                patch('job_agent.notify.send_one', side_effect=AssertionError('notification')):
             Path(home, 'config.yaml').write_text('collect:\n  keywords: [AI]\n  cities: [苏州]\n')
             result = collect_once(['boss'], dry_run=True)
             self.assertEqual(result['failed'], 0)
@@ -205,25 +205,25 @@ class RuntimeCollectTest(unittest.TestCase):
             with Store(Path(home, 'collect-dry-run.sqlite3'), dry_run=True) as store:
                 self.assertEqual(len(store.list_jobs()), 1)
 
-    def test_telegram_alert_only_enabled_telegram_channels(self):
+    def test_telegram_alert_all_enabled_channels(self):
         from unittest.mock import patch
-        from collect.runtime import telegram_alert
+        from job_agent.collect.runtime import telegram_alert
         config = Settings(notify={'enabled': True, 'channels': {
             'tg': {'type': 'telegram', 'enabled': True, 'chat_id': 'test'},
             'off': {'type': 'telegram', 'enabled': False},
             'web': {'type': 'webhook', 'enabled': True}}})
-        with patch('notify.send_one', return_value={'success': True}) as send:
+        with patch('job_agent.notify.send_one', return_value={'success': True}) as send:
             telegram_alert(config, 'boss', 'browser_error')
-            self.assertEqual(send.call_count, 1)
+            self.assertEqual(send.call_count, 2)  # telegram + webhook; disabled skipped
 
     def test_service_launch_and_status_do_not_access_browser(self):
         import os
         from unittest.mock import patch
-        from service.collection import start_collection, collection_status
+        from job_agent.service.collection import start_collection, collection_status
         with tempfile.TemporaryDirectory() as home, patch.dict(os.environ, {'JOB_AGENT_HOME': home}):
             Path(home, 'config.yaml').write_text('collect:\n  platforms:\n    boss:\n      enabled: true\n')
             self.assertFalse(collection_status()['running'])
-            with patch('service.collection.subprocess.Popen') as popen:
+            with patch('job_agent.service.collection.subprocess.Popen') as popen:
                 popen.return_value.pid = 42
                 result = start_collection(['boss'])
                 self.assertEqual(result['pid'], 42)
@@ -232,7 +232,7 @@ class RuntimeCollectTest(unittest.TestCase):
 
 class FilterCollectTest(unittest.TestCase):
     def test_monthly_annual_and_unknown_salary(self):
-        from collect.filters import salary_lower_k
+        from job_agent.collect.filters import salary_lower_k
         for raw, expected in [('15-24K·14薪',15), ('0.7-1.2万/月',7), ('12-24万/年',10),
                               ('7000-9000元/月',7), ('面议',None), ('300元/天',None), ('50元/小时',None)]:
             with self.subTest(raw=raw):
@@ -240,8 +240,8 @@ class FilterCollectTest(unittest.TestCase):
 
     def test_registry_factory_does_not_receive_incompatible_arguments(self):
         from unittest.mock import patch
-        from collect.runtime import create_sources
-        from platforms import registry
+        from job_agent.collect.runtime import create_sources
+        from job_agent.platforms import registry
         source = Source()
         with patch.object(registry, 'create_sources', create=True, return_value={'boss':source}) as factory:
             sources = create_sources(FakeBrowser(), CollectSettings(), ['boss','liepin'])

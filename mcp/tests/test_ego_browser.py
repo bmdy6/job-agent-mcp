@@ -2,9 +2,9 @@ import json
 import subprocess
 import unittest
 from unittest.mock import patch
-from browser.base import BrowserError, PageTimeout, SpaceUnavailable
-from browser.ego import EgoBrowser
-from engine.spaces import TaskSpaces
+from job_agent.browser.base import BrowserError, PageTimeout, SpaceUnavailable
+from job_agent.browser.ego import EgoBrowser
+from job_agent.engine.spaces import TaskSpaces
 
 
 def result(value=None, *, code=None):
@@ -14,9 +14,9 @@ def result(value=None, *, code=None):
 
 class EgoBrowserTests(unittest.TestCase):
     def setUp(self):
-        self.mock = patch('browser.ego.subprocess.run').start()
+        self.mock = patch('job_agent.browser.ego.subprocess.run').start()
         self.addCleanup(patch.stopall)
-        self.browser = EgoBrowser(executable='/custom/ego-browser', keepalive_seconds=0)
+        self.browser = EgoBrowser(executable='/custom/ego-browser', keepalive_seconds=0, auto_launch=False)
 
     def request(self):
         script = self.mock.call_args.kwargs['input']
@@ -77,6 +77,15 @@ class EgoBrowserTests(unittest.TestCase):
         self.browser.shutdown('test')
         self.browser.shutdown('unknown')
         self.assertEqual(calls, self.mock.call_count)
+
+    def test_one_shot_shutdown_explicitly_finishes_and_is_idempotent(self):
+        self.space()
+        self.mock.return_value=result()
+        self.browser.shutdown('test',finish=True)
+        self.assertTrue(self.request()['finish'])
+        calls=self.mock.call_count
+        self.browser.shutdown('test',finish=True)
+        self.assertEqual(self.mock.call_count,calls)
 
     def test_error_mapping(self):
         for code, cls in [('space_unavailable', SpaceUnavailable), ('page_timeout', PageTimeout), ('browser_error', BrowserError)]:

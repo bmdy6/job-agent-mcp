@@ -6,9 +6,9 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import v1
-from applications import application_funnel
-from config import load_config
+import job_agent.context_tools as v1
+from job_agent.applications import application_funnel
+from job_agent.config import load_config
 
 
 class EdgesTest(unittest.TestCase):

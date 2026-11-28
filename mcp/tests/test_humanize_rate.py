@@ -9,7 +9,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 class PointerTest(unittest.TestCase):
     def test_seeded_trajectory_bounds_and_continuity(self):
-        source = Path(__file__).resolve().parents[1] / 'browser' / 'humanize.js'
+        source = Path(__file__).resolve().parents[1] / 'job_agent' / 'browser' / 'humanize.js'
         script = source.read_text() + '''
 const cfg = {shrink: .6, duration_ms:[250,900], steps:[20,60], step_ms:[8,25],
  noise_px:1.5, overshoot_probability:.3, overshoot_px:[2,12], hold_ms:[50,150], typing_ms:[60,180]};
@@ -44,9 +44,9 @@ console.log(JSON.stringify({a,b}));'''
 
 class RateTest(unittest.TestCase):
     def setUp(self):
-        from store import Store
-        from store.automation import AutomationRepository
-        from engine.rate import RatePolicy, RateLimiter
+        from job_agent.store import Store
+        from job_agent.store.automation import AutomationRepository
+        from job_agent.engine.rate import RatePolicy, RateLimiter
         self.temp=tempfile.TemporaryDirectory(); self.addCleanup(self.temp.cleanup)
         self.store=Store(Path(self.temp.name)/'test.sqlite3'); self.addCleanup(self.store.close)
         self.repo=AutomationRepository(self.store)
@@ -55,7 +55,7 @@ class RateTest(unittest.TestCase):
         self.limiter=RateLimiter(self.repo,clock=lambda:self.now,sleep=self.sleep,seed=5)
     def sleep(self,d): self.now+=d
     def test_hour_day_rest_and_restart(self):
-        from engine.rate import RateDeferred, RateLimiter
+        from job_agent.engine.rate import RateDeferred, RateLimiter
         self.limiter.acquire('boss','delivery',self.policy)
         first=self.now
         self.limiter.acquire('boss','delivery',self.policy)
@@ -70,7 +70,7 @@ class RateTest(unittest.TestCase):
         self.now+=86400
         self.limiter.acquire('boss','delivery',self.policy)
     def test_rest_persisted_and_window_rechecked_after_wait(self):
-        from engine.rate import RateDeferred, RateLimiter
+        from job_agent.engine.rate import RateDeferred, RateLimiter
         self.policy.hourly_limit=20
         self.limiter.acquire('boss','collect',self.policy)
         self.limiter.acquire('boss','collect',self.policy)
@@ -81,21 +81,21 @@ class RateTest(unittest.TestCase):
         with self.assertRaises(RateDeferred) as caught:self.limiter.acquire('zhilian','collect',self.policy)
         self.assertEqual(caught.exception.code,'outside_hours')
     def test_risk_pause_shared_and_explicit_only(self):
-        from engine.rate import RateDeferred
+        from job_agent.engine.rate import RateDeferred
         self.repo.pause('boss','risk_control')
         self.now+=86400*30
         with self.assertRaises(RateDeferred) as caught:self.limiter.acquire('boss','collect',self.policy)
         self.assertEqual(caught.exception.code,'risk_control')
         self.assertIn('boss',self.repo.pauses())
     def test_legacy_fields_accepted(self):
-        from engine.config import PlatformSettings
-        from collect.config import CollectSettings
+        from job_agent.config.engine import PlatformSettings
+        from job_agent.config.collect import CollectSettings
         self.assertEqual(PlatformSettings(interval_seconds=30,daily_limit=200).rate_policy().daily_limit,200)
         self.assertEqual(CollectSettings(interval_seconds=[8,15]).rate_policy('boss').interval_seconds,(8,15))
 
 class RateBoundaryTest(RateTest):
     def test_hourly_boundary_is_rolling_and_failed_reservations_count(self):
-        from engine.rate import RateDeferred
+        from job_agent.engine.rate import RateDeferred
         self.policy.rest_every=(100,100)
         self.limiter.acquire('boss','collect',self.policy)
         first=self.now
@@ -107,7 +107,7 @@ class RateBoundaryTest(RateTest):
     def test_window_open_close_overnight_timezone_and_midnight(self):
         from datetime import datetime
         from zoneinfo import ZoneInfo
-        from engine.rate import RatePolicy
+        from job_agent.engine.rate import RatePolicy
         policy=RatePolicy()
         ts=lambda s:datetime.fromisoformat(s).replace(tzinfo=ZoneInfo('Asia/Shanghai')).timestamp()
         for s,allowed in [('2026-11-26T08:59:59',False),('2026-11-26T09:00:00',True),('2026-11-26T20:59:59',True),('2026-11-26T21:00:00',False)]:
@@ -116,15 +116,15 @@ class RateBoundaryTest(RateTest):
         self.assertTrue(policy.allowed(ts('2026-11-27T00:00:00')))
         self.assertFalse(policy.allowed(ts('2026-11-27T09:00:00')))
     def test_interval_wait_rechecks_window_and_pause_and_stop(self):
-        from engine.rate import RateDeferred
+        from job_agent.engine.rate import RateDeferred
         self.policy.rest_every=(100,100)
         self.now=1795697999.0 # 20:59:59
         self.limiter.acquire('boss','collect',self.policy)
         with self.assertRaises(RateDeferred) as caught:self.limiter.acquire('boss','collect',self.policy)
         self.assertEqual(caught.exception.code,'outside_hours')
     def test_zero_limits_and_invalid_config(self):
-        from engine.rate import RateDeferred,RatePolicy
-        from browser.input_config import InputSettings
+        from job_agent.engine.rate import RateDeferred,RatePolicy
+        from job_agent.config.input import InputSettings
         self.policy.hourly_limit=0
         with self.assertRaises(RateDeferred):self.limiter.acquire('boss','collect',self.policy)
         for values in [dict(interval_seconds=(-1,2)),dict(rest_every=(0,1)),dict(rest_seconds=(float('nan'),1)),dict(allowed_hours=('25:00','21:00'))]:
@@ -137,13 +137,13 @@ class RateBoundaryTest(RateTest):
         history=[self.now-300,self.now-200]
         self.limiter.acquire('boss','delivery',self.policy,history=history)
         history.append(self.now+.1)
-        from engine.rate import RateDeferred
+        from job_agent.engine.rate import RateDeferred
         with self.assertRaises(RateDeferred):self.limiter.acquire('boss','delivery',self.policy,history=history)
 
 class SerializationTest(unittest.TestCase):
     def test_frozen_batch_config_and_effective_rate_are_stable(self):
-        from engine.config import EngineSettings
-        from store.delivery import config_hash
+        from job_agent.config.engine import EngineSettings
+        from job_agent.store.delivery import config_hash
         for data in [dict(),{'platforms':{'boss':{'rate':{'hourly_limit':10}}}},
                      {'platforms':{'boss':{'interval_seconds':30,'rate':{'hourly_limit':10}}}}]:
             first=EngineSettings(**data)
@@ -152,7 +152,7 @@ class SerializationTest(unittest.TestCase):
             self.assertEqual(first.platforms['boss'].rate_policy(),second.platforms['boss'].rate_policy())
         self.assertEqual(EngineSettings().platforms['boss'].rate_policy().interval_seconds,(45,120))
     def test_collection_serialization_keeps_default_and_legacy_rates(self):
-        from collect.config import CollectSettings
+        from job_agent.config.collect import CollectSettings
         for data in [{},{'interval_seconds':[8,15]},{'platforms':{'boss':{'rate':{'hourly_limit':10}}}}]:
             first=CollectSettings(**data)
             second=CollectSettings.model_validate(first.model_dump())

@@ -17,6 +17,23 @@ stretch_salary_min: null # monthly K CNY; null = no stretch line configured
 # Highest-scoring unique companies only; 0 disables customization.
 greetings:
   top_n: 20
+  generate:
+    enabled: false # 开启须本人确认费用；只在 send_message 岗位预览阶段生成
+    model: gpt-6.1-sol
+    service_tier: priority
+    facts: [] # 本人核实的真实硬结果；允许改成聊天说法，不改变事实或数字
+    max_retries: 1 # 最多一次内容重试；接口异常立即使用通过 lint 的通用兜底
+    daily_budget_calls: 300 # 重试也计入每日付费调用上限
+    templates_path: $JOB_AGENT_HOME/greeting-templates.yaml
+    max_sentence_length: 25
+    similarity_threshold: 0.78 # 同批任意两条完整第二段，超过即重试
+    max_sentence_pattern: 3 # 同批去掉JD词后的开头句式最多三次
+    closing_lines: [简历发你看看？, 方便的话发份简历给你？, 有兴趣的话我发简历过来。, 要不我发份简历给你？, 我把简历发来看看？, 合适的话我发简历过来。]
+    jargon_terms: [RAG, MCP, Agent, LLM, BM25, RRF, Rerank, Embedding, LangChain, LangGraph, pgvector, 混合检索, 端到端延迟, 多智能体, 多Agent路由, 向量检索, 向量数据库, 研发自动化流水线, DAG, Token, Function Calling, Mem0, JEV, GEPA, LoRA, vLLM]
+    # 显式配置替换默认黑名单；省略则沿用以下默认值。
+    blacklist: [看了贵公司, 非常符合, 十分契合, 希望有机会, 期待您的回复, 我相信我能, 贵公司, 贵司, 非常匹配, 高度匹配, 深受吸引, 赋能, 助力, 核心落地经验, 攻克, 深耕, 致力于, 期待加入, 看到贵公司正在招聘, 您好，看到, 您, 体现了, 具备, 能力, 主导开发, 问答服务, 系统设计, 想了解目前的难点, 想听听需求, 想聊聊方案, 想了解具体怎么做, 想聊聊具体需求, 想听听具体的需求]
+# 可选小经历只读加载自 $JOB_AGENT_HOME/greeting-facts.yaml，格式见 greeting-facts.example.yaml。
+# confirmed 必须为 YAML 布尔 true 才能使用；不自动复制示例或写入生产目录。
 # own 的频率和每日限额由 engine.platforms 配置。
 delivery:
   confirm_ttl_minutes: 30 # 1–30; shorter is allowed, never extend existing tokens
@@ -28,6 +45,7 @@ analytics:
 # 付费评分：先 preview_scoring 看请求数，用户授权后 start_scoring(confirm=true)。
 # 不由每日任务自动调用；每批最多10个选定岗位，串行，无自动重试。
 scoring:
+  require_ratelimit_header: true  # 默认余额未知时暂停；兼容不返回限流头的服务可设 false
   model: gpt-6.1-sol
   service_tier: priority
   base_url: https://api.openai.com/v1
@@ -75,6 +93,10 @@ notify:
 
 # MCP/CLI 共用自建服务；backend 仅接受 own。
 engine:
+  max_job_age_hours: 48  # 采集超过此时长，投递前只读确认仍在招；下架不占额度
+  greeting: "" # 全局固定默认；平台省略 greeting 则继承，显式空串也会覆盖
+  greeting_paragraph_separator: "\n\n" # 不支持空行的平台覆盖为 ""，以句号连接3–4段
+  greeting_newline_separator: "；"
   backend: own
   cooldown:
     days: 30
@@ -86,12 +108,35 @@ engine:
       - '\d+(?:\.\d+)?\s*[-~—至]\s*\d+(?:\.\d+)?\s*[kK千万](?:[/·].*)?'
   dry_run: true # offline Fake only; use an explicitly separate database
   live_send_enabled: false # true AND dry_run:false AND immutable confirmed batch required
+  company_exclude: []        # 投递时跳过公司名含这些词的岗位（如大厂），对已入库岗位也生效
+  title_exclude: []          # 岗位名含这些词就跳过（如 实习、Intern）
+  salary_floor_max_k: null   # 起薪（月薪下限，K）高于此值的岗位跳过；null 不限
+  weekend_daily_limit: null  # 兼容旧配置：周六日上限，与 day_limits 及平台 daily_limit 取小
+  day_limits: {}             # 例如 {sat: 2, sun: 2}；mon..sun，0 表示当天不投
+  day_allowed_hours: {}      # 例如 {sat: ['10:00', '16:00']}；覆盖 rate.allowed_hours
+  # engine.platforms.<平台> 可设同名 day_limits/day_allowed_hours，按星期覆盖全局规则。
+  stop_on_unverified: false # false：结果不明的岗位跳过（不重投），其余照常；true：该平台本批停止
   monitor:
     task_space_name: "job-agent 监听"
-    backfill_hours: 48 # fixed at first activation; older replies remain stored, never pushed
-    interval_minutes: 5
+    backfill_hours: 48 # 相对首次激活时间的回填窗口；按平台覆盖，重启不移动激活时间
+    interval_minutes: 5 # 未匹配分时段规则时的间隔
+    interval_schedule: [] # 按顺序首个匹配生效；使用 engine.timezone
+    # interval_schedule:
+    #   - {allowed_hours: ['21:00', '08:00'], interval_minutes: 15}
+    allowed_hours: ['09:00', '21:00'] # 仅监听；沿用平台 rate.timezone，跨午夜如 ['21:00', '09:00']
     failure_threshold: 3
     platforms: [boss, zhilian, liepin, "51job"]
+    notify: {interview: true, resume_request: true, reply: true, rejection: true}
+    platform_overrides: {} # 未填写的字段继承全局；notify 按类型合并，列表整体替换
+    # platform_overrides:
+    #   liepin:
+    #     allowed_hours: ['08:00', '24:00'] # 仅示例；默认仍 09:00–21:00
+    #     interval_minutes: 7
+    #     interval_schedule: [{allowed_hours: ['21:00', '08:00'], interval_minutes: 15}]
+    #     failure_threshold: 5
+    #     backfill_hours: 24
+    #     notify: {rejection: false}
+    #   "51job": {enabled: false} # platforms 为白名单；可单独关闭其中的平台
   task_space_name: "job-agent 投递" # resolve/create by name; use a dedicated Agent-owned space
   timezone: Asia/Shanghai # calendar day for per-platform attempt budgets
   platforms:
@@ -103,8 +148,10 @@ engine:
         interval_seconds: [120, 240]
         hourly_limit: 2
     nowcoder:
-      enabled: false # collection only; recruitment replies/delivery pending live evidence
-      greeting_max_length: 0 # do not enable delivery before P0
+      enabled: false # phase 2 draft: resume upload, successful receipts and populated replies await live acceptance
+      greeting_max_length: 0 # after acceptance use 1 with empty greeting and greeting_mode: none
+      greeting_mode: none # application only; no chat greeting
+      greeting: ""
       daily_limit: 2
       rate:
         interval_seconds: [120, 240]
@@ -112,7 +159,7 @@ engine:
     boss:
       expected_account_type: any # student / professional only when explicitly required
       enabled: false
-      greeting: ""
+      # greeting: "" # 可选平台覆盖
       greeting_mode: send_message
       greeting_newline_separator: "；" # unsupported/unverified platform newline fallback; also accepts " "
       greeting_max_length: 0 # unknown pending P0; set verified value before enabling
@@ -124,7 +171,7 @@ engine:
     zhilian:
       expected_account_type: any # student / professional only when explicitly required
       enabled: false
-      greeting: ""
+      # greeting: "" # 可选平台覆盖
       greeting_mode: platform_default
       greeting_max_length: 0 # pending P0, not a claim about the platform
       daily_limit: 90
@@ -135,7 +182,7 @@ engine:
     liepin:
       expected_account_type: any # student / professional only when explicitly required
       enabled: false
-      greeting: ""
+      # greeting: "" # 可选平台覆盖
       greeting_mode: send_message
       greeting_newline_separator: "；" # live newline method unverified; preview shows flattened text
       greeting_max_length: 0 # pending P0
@@ -246,6 +293,8 @@ daily:
   deliver_enabled: false
   hour: 8
   minute: 0
+  unverified_cooldown_minutes: 30  # 仅 stop_on_unverified: true 时生效；某平台出现结果不明：只暂停该平台，冷却后由每 30 分钟的检查续投其余岗位
+  unverified_daily_stop: 3         # 当天该平台累计这么多条不明，就停到明天
 # 日常配置还需 collect.fetch_jd: true、collect.refresh_daily: true；四个平台 enabled: true。
 # engine.cooldown 默认 days: 30，规范化正则可按 README 的配置覆盖。
 

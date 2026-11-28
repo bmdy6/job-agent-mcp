@@ -1,17 +1,15 @@
 #!/usr/bin/env python3
-"""Preview conservative #46 migration; --apply backs up before atomic replacement."""
+"""Preview legacy rate defaults; --apply delegates to the audited settings writer."""
 import argparse
-from datetime import datetime
 import json
 import os
 from pathlib import Path
-import shutil
 import sys
-import tempfile
 import yaml
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'mcp'))
-from config import Settings
+from job_agent.config import Settings, job_agent_home
+from job_agent.service.settings import update_settings
 
 
 def migrate(data):
@@ -35,7 +33,7 @@ def migrate(data):
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--config',type=Path,default=Path.home()/'.job-agent/config.yaml')
+    parser.add_argument('--config',type=Path,default=job_agent_home()/'config.yaml')
     parser.add_argument('--apply',action='store_true',help='Only after all full-config readers are upgraded; backs up first')
     args=parser.parse_args()
     original=args.config.read_bytes()
@@ -47,21 +45,30 @@ def main():
         return
     if updated==data:
         print(json.dumps({'changed':False}));return
-    backup=args.config.with_name(args.config.name+'.backup-'+datetime.now().strftime('%Y%m%d-%H%M%S-%f'))
-    shutil.copy2(args.config,backup)
-    os.chmod(backup,0o600)
-    if backup.read_bytes()!=original:raise RuntimeError('Config changed during backup')
-    fd,temp=tempfile.mkstemp(prefix='.rate-migrate-',dir=args.config.parent)
+    if args.config.name != 'config.yaml' or args.config.is_symlink():
+        raise ValueError('Migration target must be a regular config.yaml')
+    def differences(before, after, prefix=''):
+        result = {}
+        for name, value in after.items():
+            path = prefix+'.'+name if prefix else name
+            old = before.get(name) if isinstance(before, dict) else None
+            if isinstance(value, dict):
+                result.update(differences(old or {}, value, path))
+            elif value != old:
+                result[path] = value
+        return result
+    changes = differences(data, updated)
+    previous_home = os.environ.get('JOB_AGENT_HOME')
     try:
-        with os.fdopen(fd,'w') as stream:
-            yaml.safe_dump(updated,stream,allow_unicode=True,sort_keys=False)
-            stream.flush();os.fsync(stream.fileno())
-        if args.config.read_bytes()!=original:raise RuntimeError('Config changed during migration')
-        os.replace(temp,args.config)
-        if yaml.safe_load(args.config.read_bytes())!=updated:raise RuntimeError('Config readback mismatch')
+        os.environ['JOB_AGENT_HOME'] = str(args.config.absolute().parent)
+        result = update_settings(changes, confirm=True, source='cli:migrate-rate', reason='legacy rate defaults migration')
     finally:
-        if os.path.exists(temp):os.unlink(temp)
-    print(json.dumps({'changed':True,'backup':str(backup)},ensure_ascii=False))
+        if previous_home is None:
+            os.environ.pop('JOB_AGENT_HOME', None)
+        else:
+            os.environ['JOB_AGENT_HOME'] = previous_home
+    print(json.dumps({'changed': result['applied'], 'history_id': result.get('history_id')}, ensure_ascii=False))
+
 
 
 if __name__=='__main__':

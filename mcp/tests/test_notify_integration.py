@@ -1,3 +1,4 @@
+from state_helpers import read_state_file, write_state_file
 """MCP stdio + CLI process-restart acceptance against one fake HTTP service."""
 import json
 import os
@@ -14,7 +15,7 @@ from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-import watch
+import job_agent.watch as watch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -55,7 +56,7 @@ class NotifyIntegrationTest(unittest.IsolatedAsyncioTestCase):
             config = Path(home, 'config.yaml')
             config.write_text('notify:\n  enabled: false\n  channels:\n    hook:\n      type: webhook\n      enabled: true\n      url_env: NOTIFY_TEST_URL\n')
             try:
-                params = StdioServerParameters(command=sys.executable, args=[str(ROOT/'server.py')], env=env)
+                params = StdioServerParameters(command=sys.executable, args=['-m', 'job_agent.server'], env=env)
                 async with stdio_client(params) as (read, write):
                     async with ClientSession(read, write) as client:
                         await client.initialize()
@@ -68,7 +69,7 @@ class NotifyIntegrationTest(unittest.IsolatedAsyncioTestCase):
                         invalid = await client.call_tool('notify_test', {'channel': 'missing'})
                         self.assertTrue(invalid.isError)
                 self.assertEqual(len(requests), 1)  # Test only sends to the user; no platform reads.
-                audit = Path(home, 'activity.jsonl').read_text()
+                audit = read_state_file(Path(home, 'activity.jsonl'))
                 self.assertNotIn('合成', audit)
                 self.assertNotIn('NOTIFY_TEST_URL', audit)
             finally:
@@ -78,7 +79,7 @@ class NotifyIntegrationTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_disabled_cli_exits_without_http(self):
         with tempfile.TemporaryDirectory() as home:
-            run = subprocess.run([sys.executable, str(ROOT/'cli.py'), 'watch', '--once'],
+            run = subprocess.run([sys.executable, '-m', 'job_agent.cli', 'watch', '--once'],
                 env={**os.environ, 'JOB_AGENT_HOME': home}, capture_output=True, text=True, timeout=10)
             self.assertEqual(run.returncode, 0, run.stderr)
             self.assertEqual(json.loads(run.stdout)['sent'], 0)

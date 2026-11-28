@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 import fcntl
 import io
 import json
+import math
 import os
 from pathlib import Path
 import plistlib
@@ -22,7 +23,7 @@ import time
 import uuid
 
 DAILY = 'com.job-agent.daily'
-MONITOR = 'com.bmdy6.job-agent-monitor'
+MONITOR = 'com.job-agent.monitor'
 LEGACY = 'com.bmdy6.job-agent-watch'
 LABELS = (DAILY, MONITOR)
 REPO = Path(__file__).resolve().parents[1]
@@ -67,6 +68,42 @@ def backup_database(source, destination):
             raise RuntimeError('SQLite backup failed quick_check')
 
 
+# v7 consolidates these into jobs.sqlite3. Retain originals for a v6 rollback.
+LEGACY_STATE_FILES = ('confirmations.sqlite3', 'notify-outbox.jsonl', 'notified.jsonl',
+    'activity.jsonl', 'monitor-state.json', 'monitor-runtime.json', 'monitor-policy.json',
+    'heartbeat-state.json', 'daily-last-run.json', 'ego-startup-failure.json')
+
+
+def snapshot_legacy_state(home, backup):
+    paths = [home/name for name in LEGACY_STATE_FILES] + sorted((home/'own-tasks').glob('*.json'))
+    saved = []
+    for path in paths:
+        if path.exists():
+            if path.is_symlink() or not path.is_file():
+                raise ValueError('Legacy state must be a regular file')
+            name = str(path.relative_to(home))
+            target = backup/'legacy-state'/name
+            if path.suffix == '.sqlite3':
+                target.parent.mkdir(parents=True, exist_ok=True, mode=0o700)
+                backup_database(path, target)
+            else:
+                atomic(target, path.read_bytes())
+            saved.append(name)
+    save_json(backup/'legacy-state-files.json', saved)
+
+
+def restore_legacy_state(home, backup):
+    for name in read_json(backup/'legacy-state-files.json', []):
+        if name not in LEGACY_STATE_FILES and not (name.startswith('own-tasks/') and Path(name).name == name[len('own-tasks/'):]):
+            raise ValueError('Unsafe legacy state backup path')
+        path = home/name
+        source = backup/'legacy-state'/name
+        if path.suffix == '.sqlite3':
+            restore_database(source, path)
+        else:
+            atomic(path, source.read_bytes())
+
+
 def restore_database(source, destination):
     # All writers must be stopped. Never replay a stale WAL onto the restored DB.
     staging = destination.with_name('.jobs-restore.sqlite3')
@@ -98,9 +135,22 @@ def platform_ok(status):
     return status == 'ok' or (isinstance(status, str) and status.endswith('_paused'))
 
 
+def monitor_runtime(home):
+    path = Path(home)/'jobs.sqlite3'
+    if path.exists():
+        with closing(sqlite3.connect(path.resolve().as_uri()+'?mode=ro', uri=True)) as db:
+            if db.execute('PRAGMA user_version').fetchone()[0] >= 7:
+                row = db.execute("SELECT summary FROM runs WHERE kind='monitor' ORDER BY updated_at DESC,run_id DESC LIMIT 1").fetchone()
+                result = json.loads(row[0]) if row else {}
+                if result.pop('_platforms_ref', False):
+                    result['platforms'] = {r[0]:json.loads(r[1]) for r in db.execute('SELECT * FROM monitor_platform_state')}
+                return result
+    return read_json(Path(home)/'monitor-runtime.json', {})
+
+
 def baseline_ok_platforms(home):
     """Platforms healthy in the last poll before deploy; None when there is no record."""
-    state = read_json(home/'monitor-runtime.json', {})
+    state = monitor_runtime(home)
     platforms = state.get('result', {}).get('platforms')
     if not isinstance(platforms, dict) or not platforms:
         return None
@@ -173,9 +223,9 @@ class Launchd:
     def healthy(self, home, since, timeout):
         deadline = time.monotonic()+timeout
         while time.monotonic() < deadline:
-            current = self.inspect(MONITOR)
+            current = self.inspect(getattr(self,'monitor',MONITOR))
             match = re.search(r'^\s*pid = (\d+)\s*$', current.stdout, re.M)
-            state = read_json(home/'monitor-runtime.json', {})
+            state = monitor_runtime(home)
             if current.returncode == 0 and match and state.get('pid') == int(match[1]):
                 if state.get('started_at', 0) >= since and state.get('last_poll_at', 0) >= since:
                     if state.get('state') == 'running' and poll_healthy(state, self.baseline):
@@ -197,6 +247,26 @@ class Deployer:
         self.current = self.runtimes/'current'
         self.state_path = self.home/'deployment-state.json'
         self.backups = self.home/'deployments'
+        self.configure_labels()
+
+    def configure_labels(self):
+        import yaml
+        raw=yaml.safe_load((self.home/'config.yaml').read_text()) if (self.home/'config.yaml').exists() else {}
+        prefix=(raw or {}).get('deploy',{}).get('label_prefix','com.job-agent')
+        if not isinstance(prefix,str) or not re.fullmatch(r'[A-Za-z0-9]+(?:[.-][A-Za-z0-9]+)*',prefix):
+            raise ValueError('Invalid deploy.label_prefix')
+        self.monitor=prefix+('.job-agent-monitor' if prefix!='com.job-agent' else '.monitor')
+        self.labels=(DAILY,self.monitor)
+        # Never silently orphan/rename an existing monitor for this data home.
+        for path in self.agents.glob('*.plist'):
+            if not path.stem.endswith(('.job-agent-monitor','.monitor')):
+                continue
+            data=plistlib.loads(path.read_bytes())
+            configured=data.get('EnvironmentVariables',{}).get('JOB_AGENT_HOME')
+            if configured and Path(configured).expanduser().resolve()==self.home and ('monitor' in path.stem):
+                if path.stem!=self.monitor:
+                    raise ValueError('Existing monitor label differs; preserve deploy.label_prefix before deployment')
+        if isinstance(self.launchd,Launchd):self.launchd.monitor=self.monitor
 
     def resolve(self, revision):
         return subprocess.check_output(['git', '-C', str(self.repo), 'rev-parse', '--verify', revision+'^{commit}'], text=True).strip()
@@ -223,29 +293,39 @@ class Deployer:
         runtime.mkdir(parents=True, mode=0o700)
         archive = subprocess.check_output(['git', '-C', str(self.repo), 'archive', sha])
         with tarfile.open(fileobj=io.BytesIO(archive)) as stream:
-            # git archive contains repository-controlled paths only. filter requires Python 3.12+.
-            stream.extractall(runtime, filter='data')
-        subprocess.run(['uv', 'venv', str(runtime/'.venv')], check=True)
-        subprocess.run(['uv', 'pip', 'install', '--python', str(runtime/'.venv/bin/python'), str(runtime/'mcp')], check=True)
-        version = int(self.python(runtime, 'from store import SCHEMA_VERSION; print(SCHEMA_VERSION)'))
+            # Repository runtimes need only regular files/directories. Validate
+            # members explicitly so extraction also works on supported Python 3.10.
+            members = stream.getmembers()
+            for member in members:
+                destination = (runtime / member.name).resolve()
+                if not destination.is_relative_to(runtime) or not (member.isfile() or member.isdir()):
+                    raise ValueError('Unsafe runtime archive member')
+            stream.extractall(runtime, members=members, **({'filter': 'data'} if hasattr(tarfile, 'data_filter') else {}))
+        if not (runtime/'mcp/uv.lock').is_file():
+            raise ValueError('Committed mcp/uv.lock is required for deployment')
+        env = {**os.environ, 'UV_PROJECT_ENVIRONMENT': str(runtime/'.venv')}
+        subprocess.run(['uv', 'sync', '--project', str(runtime/'mcp'), '--frozen', '--no-editable'],
+                       check=True, env=env)
+        version = int(self.python(runtime, 'from job_agent.store import SCHEMA_VERSION; print(SCHEMA_VERSION)'))
         save_json(manifest, dict(commit=sha, schema_version=version, ready=True,
                                  built_at=datetime.now(timezone.utc).isoformat()))
         return runtime
 
     def smoke(self, runtime):
         settings = json.loads(self.python(runtime, '''import json
-from config import load_config
-from monitor.config import load_settings
+import math
+from job_agent.config import load_config
+from job_agent.monitor.config import load_settings
 config = load_config()
 load_settings()
 print(json.dumps(dict(hour=config.daily.hour, minute=config.daily.minute)))
 '''))
         # This exercises the installed store and real poller with no browser/network/secrets.
         with tempfile.TemporaryDirectory(prefix='job-agent-smoke-') as directory:
-            self.python(runtime, '''from browser.base import FakeBrowser
-from config import Settings
-from store import Store
-from monitor.poller import Monitor
+            self.python(runtime, '''from job_agent.browser.base import FakeBrowser
+from job_agent.config import Settings
+from job_agent.store import Store
+from job_agent.monitor.poller import Monitor
 with Store() as store:
     result = Monitor(FakeBrowser(), [], store, Settings()).poll_once()
     assert result['failed'] == 0 and result['sent'] == 0
@@ -253,20 +333,25 @@ with Store() as store:
         return settings
 
     def migrate(self, runtime):
-        self.python(runtime, '''from store import Store, SCHEMA_VERSION
-with Store() as store:
+        self.python(runtime, '''from job_agent.store import Store, SCHEMA_VERSION
+from contextlib import nullcontext
+if SCHEMA_VERSION >= 7:
+    from job_agent.store.database import deployment_migration
+with deployment_migration() if SCHEMA_VERSION >= 7 else nullcontext():
+ with Store(**({'migrate': True} if SCHEMA_VERSION >= 7 else {})) as store:
     assert store.schema_version == SCHEMA_VERSION
     assert store.connection.execute('PRAGMA quick_check').fetchone()[0] == 'ok'
 ''')
 
     def validate(self):
+        self.configure_labels()
         if self.launchd.loaded_service(LEGACY):
             raise ValueError('Legacy watch is loaded; retire it explicitly before unified deployment')
         if self.current.exists() and not self.current.is_symlink():
             raise ValueError('runtime/current must be a symlink')
         if self.current.is_symlink() and (not self.current.exists() or self.current.resolve().parent != self.runtimes):
             raise ValueError('runtime/current must point to a complete local runtime')
-        for label in (*LABELS, LEGACY):
+        for label in (*self.labels, LEGACY):
             path = self.agents/(label+'.plist')
             if path.exists():
                 data = plistlib.loads(path.read_bytes())
@@ -275,8 +360,8 @@ with Store() as store:
                     raise ValueError(f'{label} JOB_AGENT_HOME differs from deployment target')
                 if data.get('Label') != label:
                     raise ValueError(f'Incorrect Label in {path}')
-                if label == DAILY and (data.get('RunAtLoad') or data.get('KeepAlive')):
-                    raise ValueError('Existing daily must be calendar-only before deployment')
+                if label == DAILY and data.get('KeepAlive'):
+                    raise ValueError('Daily KeepAlive is unsupported; use bounded periodic resume')
                 if label == LEGACY:
                     raise ValueError('Legacy watch is installed; retire it explicitly before unified deployment')
         if (self.home/'jobs.sqlite3').is_symlink():
@@ -288,13 +373,13 @@ with Store() as store:
     def snapshot(self, kind):
         backup = self.backups/(datetime.now(timezone.utc).strftime('%Y%m%dT%H%M%S')+'-'+uuid.uuid4().hex[:8])
         backup.mkdir(parents=True, mode=0o700)
-        loaded = {label: self.launchd.loaded_service(label) for label in LABELS}
-        if any(loaded[label] and not (self.agents/(label+'.plist')).exists() for label in LABELS):
+        loaded = {label: self.launchd.loaded_service(label) for label in self.labels}
+        if any(loaded[label] and not (self.agents/(label+'.plist')).exists() for label in self.labels):
             raise ValueError('Loaded service has no recoverable plist; export it before deploying')
         before = dict(kind=kind, loaded=loaded, current=os.readlink(self.current) if self.current.is_symlink() else None,
                       home=str(self.home), agents=str(self.agents), history=self.state()['history'],
                       plists={}, schema_version=schema_version(self.home/'jobs.sqlite3'))
-        for label in LABELS:
+        for label in self.labels:
             source = self.agents/(label+'.plist')
             before['plists'][label] = source.exists()
             if source.exists():
@@ -306,7 +391,7 @@ with Store() as store:
         return backup, before
 
     def stop(self):
-        self.launchd.stop(MONITOR)
+        self.launchd.stop(self.monitor)
         self.launchd.stop(DAILY)  # disarm calendar while schema changes; never kickstart daily
 
     def switch(self, target):
@@ -322,14 +407,15 @@ with Store() as store:
             staging.unlink(missing_ok=True)
 
     def install_plists(self, settings):
-        for label, launcher in ((DAILY, 'daily'), (MONITOR, 'monitor')):
+        for label, launcher in ((DAILY, 'daily'), (self.monitor, 'monitor')):
             path = self.agents/(label+'.plist')
             if path.exists():
                 data = plistlib.loads(path.read_bytes())
-            elif label == MONITOR:
+            elif label == self.monitor:
                 data = plistlib.loads((self.current/'examples/job-agent-monitor.plist').read_bytes())
             else:
                 data = dict(Label=label, StartCalendarInterval={'Hour': settings['hour'], 'Minute': settings['minute']}, ProcessType='Background')
+            data['Label'] = label
             extras = data.get('ProgramArguments', [])[2:] if label == DAILY else []
             data['ProgramArguments'] = [str(self.current/'.venv/bin/python'), str(self.current/f'scripts/{launcher}-launch.py'), *extras]
             data['WorkingDirectory'] = str(self.current)
@@ -337,9 +423,10 @@ with Store() as store:
             for key in ('StandardOutPath', 'StandardErrorPath'):
                 data[key] = str(self.home/f'{launcher}.log')
             if label == DAILY:
-                # Existing safety caps/calendar/environment survive; bootstrap must not send.
+                # Preserve safety caps/calendar/environment; daily.lock guards schema changes.
                 for key in ('RunAtLoad', 'KeepAlive', 'StartInterval', 'QueueDirectories', 'WatchPaths', 'StartOnMount', 'Sockets'):
                     data.pop(key, None)
+                data.update(RunAtLoad=True, StartInterval=1800)
                 data.setdefault('StartCalendarInterval', {'Hour': settings['hour'], 'Minute': settings['minute']})
             else:
                 data.update(RunAtLoad=True, KeepAlive={'SuccessfulExit': False}, ThrottleInterval=60)
@@ -350,8 +437,9 @@ with Store() as store:
     def restore(self, backup, before, *, database):
         if database:
             restore_database(backup/'jobs.sqlite3', self.home/'jobs.sqlite3')
+            restore_legacy_state(self.home, backup)
         self.switch(before['current'])
-        for label in LABELS:
+        for label in self.labels:
             path = self.agents/(label+'.plist')
             if before['plists'][label]:
                 atomic(path, (backup/path.name).read_bytes())
@@ -359,7 +447,7 @@ with Store() as store:
                 path.unlink(missing_ok=True)
         save_json(self.state_path, {'history': before['history']})
         self.release_monitor()
-        for label in LABELS:
+        for label in self.labels:
             if before['loaded'][label]:
                 self.launchd.start(self.agents/(label+'.plist'))
 
@@ -368,11 +456,15 @@ with Store() as store:
             fcntl.flock(self.monitor_fd, fcntl.LOCK_UN)
 
     def check_writers(self):
-        # These independent CLI workers do not take the daily lock.
-        for path in (self.home/'own-tasks').glob('*.json'):
-            state = read_json(path, {})
-            if state.get('status') in {'running', 'stopping'}:
-                raise ValueError('Quiesce own-tasks writers before deployment')
+        # Independent workers are not stopped by the daily/monitor service locks.
+        path = self.home/'jobs.sqlite3'
+        if schema_version(path) is not None and schema_version(path) >= 7:
+            with closing(sqlite3.connect(path.as_uri()+'?mode=ro', uri=True)) as db:
+                states = [json.loads(r[0]) for r in db.execute('SELECT r.summary FROM worker_state w JOIN runs r ON r.run_id=w.run_id')]
+        else:
+            states = [read_json(p, {}) for p in (self.home/'own-tasks').glob('*.json')]
+        if any(state.get('status') in {'running','stopping'} for state in states):
+            raise ValueError('Quiesce own-tasks writers before deployment')
 
     @contextmanager
     def transaction(self, kind, prepare=lambda: None):
@@ -392,6 +484,7 @@ with Store() as store:
                 locks.enter_context(exclusive(self.home/'jobs.sqlite3.collect.lock'))
                 self.monitor_fd = locks.enter_context(exclusive(self.home/'monitor-run.lock'))
                 backup_database(self.home/'jobs.sqlite3', backup/'jobs.sqlite3')
+                snapshot_legacy_state(self.home, backup)
                 database_ready = True
                 yield backup, before
             except BaseException:
@@ -405,7 +498,7 @@ with Store() as store:
                     save_json(backup/'outcome.json', {'status': 'failed_restored', 'safety_backup': str(safety)})
                 else:
                     # Restore only the services actually unloaded; avoid bootstrap collisions.
-                    for label in LABELS:
+                    for label in self.labels:
                         if before['loaded'][label] and not self.launchd.loaded_service(label):
                             self.launchd.start(self.agents/(label+'.plist'))
                 raise
@@ -426,7 +519,7 @@ with Store() as store:
             since = time.time()
             self.release_monitor()
             self.launchd.start(self.agents/(DAILY+'.plist'))
-            self.launchd.start(self.agents/(MONITOR+'.plist'))
+            self.launchd.start(self.agents/(self.monitor+'.plist'))
             health = self.launchd.healthy(self.home, since, self.health_timeout)
             result = dict(status='deployed', commit=sha, runtime=str(runtime), backup=str(backup), health=health)
             save_json(backup/'outcome.json', result)
@@ -448,7 +541,7 @@ with Store() as store:
                 raise ValueError('Schema differs: --restore-database required; newer writes are archived before restore')
             if before['current'] and not (self.runtimes/before['current']).is_dir():
                 raise ValueError('Rollback runtime is missing; no services were stopped')
-            for label in LABELS:
+            for label in self.labels:
                 if before['plists'][label] and not (target/(label+'.plist')).is_file():
                     raise ValueError('Rollback plist backup is missing')
             if (incompatible or restore_database) and before['schema_version'] is not None and not (target/'jobs.sqlite3').is_file():
@@ -460,7 +553,7 @@ with Store() as store:
             self.restore(target, before, database=incompatible or restore_database)
             result = dict(status='rolled_back', restored=str(target), safety_backup=str(safety),
                           database_restored=incompatible or restore_database)
-            if before['loaded'][MONITOR]:
+            if before['loaded'][self.monitor]:
                 result['health'] = self.launchd.healthy(self.home, since, self.health_timeout)
             save_json(safety/'outcome.json', result)
         return result
@@ -493,7 +586,7 @@ with Store() as store:
             before = read_json(backup/'before.json', {})
             if before.get('current'):
                 rollback_refs.append(self.runtimes/before['current'])
-            for label in LABELS:
+            for label in self.labels:
                 saved = backup/(label+'.plist')
                 if saved.exists():
                     data = plistlib.loads(saved.read_bytes())
@@ -529,6 +622,35 @@ with Store() as store:
         return rows
 
 
+def wait_for_daily(home, timeout):
+    """Wait for the daily flock without creating files or signalling services.
+
+    This replaces night-deploy.sh's open-ended launchctl polling. The deployment
+    transaction still acquires its own locks after this advisory wait.
+    """
+    if timeout < 0 or not math.isfinite(timeout):
+        raise ValueError('Daily wait timeout must be nonnegative')
+    deadline = time.monotonic() + timeout
+    path = Path(home)/'daily.lock'
+    while True:
+        try:
+            fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW)
+        except FileNotFoundError:
+            return
+        try:
+            try:
+                fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                return
+            except BlockingIOError:
+                pass
+        finally:
+            os.close(fd)
+        remaining = deadline-time.monotonic()
+        if remaining <= 0:
+            raise RuntimeError('Timed out waiting for daily; no services were changed')
+        time.sleep(min(.5, remaining))
+
+
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--revision', default='origin/main', help='Resolved locally; fetch origin before deploying')
@@ -539,9 +661,16 @@ def main():
     action.add_argument('--inventory', action='store_true')
     parser.add_argument('--restore-database', action='store_true', help='Rollback only: restore pre-deploy DB; newer writes are saved in safety_backup')
     parser.add_argument('--health-timeout', type=float, default=600)
+    parser.add_argument('--wait-idle', type=float, default=0, metavar='SECONDS', help='Bounded wait for daily to finish; never kills or kickstarts it')
     args = parser.parse_args()
     if args.restore_database and not args.rollback:
         parser.error('--restore-database requires --rollback')
+    if args.wait_idle < 0 or not math.isfinite(args.wait_idle):
+        parser.error('--wait-idle must be finite and nonnegative')
+    if args.inventory and args.wait_idle:
+        parser.error('--wait-idle is not used with --inventory')
+    if args.wait_idle:
+        wait_for_daily(args.home, args.wait_idle)
     # Inventory is always read-only, with no launchctl calls or path restrictions.
     app = Deployer(REPO, args.home, args.agents_dir, launchd=Launchd() if args.inventory else None,
                    health_timeout=args.health_timeout)

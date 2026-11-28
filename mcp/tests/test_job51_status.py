@@ -3,13 +3,13 @@ import os
 import tempfile
 import unittest
 from unittest.mock import patch
-from browser.base import FakePage, FakeSpace
-from config import Settings
-from monitor import Monitor
-from platforms.job51 import status as pages
-from platforms.job51.replies import Job51ReplySource
-from store import Store
-from browser.base import FakeBrowser
+from job_agent.browser.base import FakePage, FakeSpace
+from job_agent.config import Settings
+from job_agent.monitor import Monitor
+from job_agent.platforms.job51 import status as pages
+from job_agent.platforms.job51.replies import Job51ReplySource
+from job_agent.store import Store
+from job_agent.browser.base import FakeBrowser
 
 
 def snapshot(tag='', rows=None):
@@ -92,7 +92,7 @@ class StatusTests(unittest.TestCase):
 
     def test_notification_dedup_restart_and_unknown_job(self):
         with tempfile.TemporaryDirectory() as home, patch.dict(os.environ,JOB_AGENT_HOME=home), \
-                patch('notify.send_one',return_value={'success':True}) as sender:
+                patch('job_agent.notify.send_one',return_value={'success':True}) as sender:
             store=Store();self.addCleanup(store.close)
             job=store.upsert_job(platform='51job',platform_job_id='900001',company='示例公司',title='示例岗位')
             store.record_delivery(job,status='sent')
@@ -124,3 +124,48 @@ class StatusTests(unittest.TestCase):
 
 
 if __name__=='__main__':unittest.main()
+
+class MonitorDiagnosticsTests(unittest.TestCase):
+    def test_known_parser_failure_has_content_free_stage_and_reason(self):
+        page=FakePage('p2',{'job51.applications':snapshot()})
+        page.responses['job51.applications']['pages']=0
+        with self.assertRaises(pages.Unverified) as caught:
+            Job51ReplySource().fetch(FakeSpace('test',pages=[page]))
+        self.assertEqual(caught.exception.stage,'read_applications_all')
+        self.assertEqual(caught.exception.reason_code,'application_pagination')
+        self.assertTrue(page.closed)
+
+    def test_page_cleanup_does_not_replace_parser_failure(self):
+        page=FakePage('p2',{'job51.applications':snapshot()})
+        page.responses['job51.applications']['pages']=0
+        page.close=lambda:(_ for _ in ()).throw(RuntimeError('cleanup'))
+        with self.assertRaises(pages.Unverified):
+            Job51ReplySource().fetch(FakeSpace('test',pages=[page]))
+
+
+class ObservedMonitorFixtureTests(unittest.TestCase):
+    def test_three_page_all_alias_fixture_and_fail_closed_filter(self):
+        import copy,json
+        from pathlib import Path
+        data=json.loads((Path(__file__).parent/'fixtures/platforms/job51/monitor-applications.json').read_text())
+        projected=data['application_pages']
+        self.assertEqual(len(projected),3)
+        self.assertEqual(sum(len(pages.parse_application_page(p,'')[0]) for p in projected),33)
+        self.assertEqual(projected[1]['tag'],'all')
+        self.assertEqual(data['chat']['chatTextareas'],0)
+        self.assertEqual(data['chat']['chatLists'],0)
+        # Replay the observed pagination and then the three explicit empty filters.
+        class Page(FakePage):
+            def evaluate(self,js):
+                from urllib.parse import parse_qs,urlsplit
+                q=parse_qs(urlsplit(self._url).query)
+                tag=q.get('tagType',[''])[0]
+                if tag in ('','all'):
+                    return copy.deepcopy(projected[int(q.get('page',['1'])[0])-1])
+                empty=snapshot(tag,[]);empty.update(empty=True,page=0,pages=0,next=None)
+                return empty
+        p=Page('p2')
+        self.assertIsInstance(Job51ReplySource().fetch(FakeSpace('test',pages=[p])),list)
+        self.assertTrue(p.closed)
+        self.assertEqual(len([a for a in p.actions if a[0]=='goto']),6)
+        with self.assertRaises(pages.Unverified):pages.parse_application_page(projected[1],'cy')

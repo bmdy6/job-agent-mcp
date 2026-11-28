@@ -6,19 +6,40 @@
 engine:
   monitor:
     task_space_name: job-agent 监听
+    allowed_hours: ['09:00', '21:00']
     interval_minutes: 5
+    interval_schedule: []
+    # 例如 [{allowed_hours: ['21:00', '08:00'], interval_minutes: 15}]
+    notify: {interview: true, resume_request: true, reply: true, rejection: true}
+    platform_overrides: {}
+    # 例如 {liepin: {backfill_hours: 24, notify: {rejection: false}}}
     backfill_hours: 48
     failure_threshold: 3
     platforms: [boss, zhilian, liepin, "51job"]
 ```
 
-默认首次通知时补推最近 48 小时。`monitor-policy.json` 保存首次激活时间与固定 cutoff；重启、断网重试仍用同一个窗口，不因重启丢失未成功推送的回复。更早或时间不明的回复仍留在库中，不推。修改 backfill_hours 只影响新的首次激活，不会重置已有 policy。
+默认首次通知时补推最近 48 小时。`monitor-policy.json` 保存首次激活时间与固定 cutoff；重启、断网重试仍用同一个窗口，不因重启丢失未成功推送的回复。更早或时间不明的回复仍留在库中，不推。修改 `backfill_hours` 会以同一激活时间重新计算该平台通知窗口，不删除已有回执；扩大窗口仅能补推已存储或原站当前加载的消息，不承诺全历史。
+
+### 独立监听策略
+
+`allowed_hours` 仅管监听，默认仍是 09:00–21:00，支持跨午夜，结束时间可写 `24:00`；投递与采集策略不变。时段沿用平台 `rate.timezone`，分时轮询规则使用 `engine.timezone`。`platforms` 是监听白名单，`platform_overrides.<平台>.enabled: false` 可单独关闭平台；其余覆盖字段为 `allowed_hours`、`interval_minutes`、`interval_schedule`、`failure_threshold`、`backfill_hours`、`notify`。未配置字段继承全局，`notify` 按类型合并，分时规则列表整体替换；分时规则首个匹配生效，否则使用 `interval_minutes`。
+
+后台每分钟检查一次各平台的到期时间，平台上次尝试时间写入既有状态文件，重启沿用。`monitor --once` 是显式手动抓取，跳过轮询间隔检查，仍遵守平台锁、暂停和原有频率策略。所有设置均可通过通用设置入口修改，预览不写入，`--confirm` / `confirm=true` 才备份、写入并回读。后台进程启动时加载配置，修改后需由运维重启监听进程生效。
+
+```sh
+job-agent settings show engine.monitor
+job-agent settings set engine.monitor.allowed_hours '["08:00","24:00"]'
+job-agent settings set engine.monitor.platform_overrides.liepin.notify.rejection false --confirm
+# 原有 job-agent config 命令保持可用。
+```
+
+MCP：`update_settings(changes={"engine.monitor.platform_overrides.liepin.interval_minutes": 15}, confirm=false)` 先预览，同一参数加 `confirm=true` 才应用。四类通知开关分别为 `interview`（面试）、`resume_request`（要简历）、`reply`（普通回复，包括问题）、`rejection`（不合适）。关闭类型只暂停该类型推送，回复仍入库，重新开启时受回填窗口与去重回执控制。51job 的“邀面试”和“不合适/不匹配”状态也使用对应开关；失败和恢复告警不受回复类型开关影响。
 
 ### 会话增量读取
 
 每个平台第一次只把当前已加载列表的会话摘要记入 SQLite（schema v5），即使有未读也不逐个点开。之后只打开未读数大于 0、最后消息 ID/摘要指纹变化，或基线后新增的会话。列表重排不触发读取；读取失败保留旧摘要，回复与成功摘要在同一事务提交，重启仍继续使用原游标。新增会话和未读会话读取已加载消息，源的固定回溯 cutoff 沿用首次建基线时的 `backfill_hours`，通知继续受既有 policy 和回执控制。
 
-BOSS 使用 `uniqueId / lastMsgId / unreadCount / lastTS`。智联列表没有消息 ID，使用 `sessionId` 和发送时间、预览文本、消息类型、发送方类型的 SHA-256 指纹；库中只保存指纹，不保存列表预览正文。猎聘按联系人 ID、最后消息 ID、未读数和最后时间提供摘要；字段不明时停止该平台，不能回退到逐个打开。猎聘摘要字段尚未在当前账号实测（平台保持原有风控暂停），需解除暂停的独立授权后核验。
+BOSS 使用 `uniqueId / lastMsgId / unreadCount / lastTS`。智联列表没有消息 ID，使用 `sessionId` 和发送时间、预览文本、消息类型、发送方类型的 SHA-256 指纹；库中只保存指纹，不保存列表预览正文。猎聘按联系人 ID、最后消息 ID、未读数和最后时间提供摘要；字段不明时停止该平台，不能回退到逐个打开。猎聘学生版当前账号的摘要字段已在独立调试空间核验；生产暂停状态不由本次调试改变。
 
 51job 保留申请状态读取，不新增聊天入口：按岗位、申请日期和状态集合比较，首次仅建基线，之后只返回变化状态；仍需读取完整状态列表来发现变化。`monitor-runtime.json` 的逐平台结果增加 `sessions / selected / baseline`，没有变化时 fetched 为 0。
 

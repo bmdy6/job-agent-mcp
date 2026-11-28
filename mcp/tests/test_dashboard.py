@@ -1,3 +1,4 @@
+from state_helpers import read_state_file, write_state_file
 """Offline dashboard: actual SQLite snapshots, privacy and shared metric contracts."""
 import asyncio
 from datetime import datetime
@@ -11,12 +12,12 @@ import unittest
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
-from config import load_config
-from store import Store
-from store.signals import save_classification
-from service import read_tools
-from service.dashboard import collect, generate
-from dashboard import render
+from job_agent.config import load_config
+from job_agent.store import Store
+from job_agent.store.signals import save_classification
+from job_agent.service import read_tools
+from job_agent.service.dashboard import collect, generate
+from job_agent.dashboard_html import render
 
 NOW = datetime(2026, 11, 26, 12, tzinfo=ZoneInfo('Asia/Shanghai'))
 
@@ -91,7 +92,7 @@ class DashboardTests(unittest.TestCase):
             store.connection.execute('INSERT INTO delivery_attempts VALUES(?,?)', (self.a, NOW.timestamp() - 300))
             store.connection.execute('CREATE TABLE operation_rate(platform TEXT,scope TEXT,at REAL)')
             store.connection.execute('INSERT INTO operation_rate VALUES(?,?,?)', ('boss', 'delivery', NOW.timestamp() - 300))
-        (self.home / 'monitor-runtime.json').write_text(json.dumps({'state': 'running', 'last_poll_at': NOW.timestamp(), 'result': {'platforms': {'boss': {'status': 'risk_control_paused', 'reason_code': 'risk_control', 'stage': 'fetch'}, 'zhilian': {'status': 'login_paused', 'reason_code': 'login_required'}}}}))
+        write_state_file(self.home / 'monitor-runtime.json', json.dumps({'state': 'running', 'last_poll_at': NOW.timestamp(), 'last_success_at': NOW.timestamp(), 'result': {'platforms': {'boss': {'status': 'risk_control_paused', 'reason_code': 'risk_control', 'stage': 'fetch'}, 'zhilian': {'status': 'login_paused', 'reason_code': 'login_required'}}}}))
 
     def data(self):
         with read_tools.snapshot() as store:
@@ -196,7 +197,7 @@ class DashboardTests(unittest.TestCase):
             store.connection.execute('INSERT INTO delivery_attempts VALUES(?,?)',
                 (self.a, datetime.fromisoformat('2026-11-25T16:00:00+00:00').timestamp()))
             store.connection.execute("INSERT INTO operation_rate VALUES('boss','delivery',?)", (NOW.timestamp()-60,))
-        (self.home/'monitor-runtime.json').write_text(json.dumps({'state':'running','last_poll_at':NOW.timestamp()-3600,
+        write_state_file(self.home/'monitor-runtime.json', json.dumps({'state':'running','last_poll_at':NOW.timestamp()-3600,
             'result':{'platforms':{'boss':{'status':'ok','stage':'complete','reason_code':'ok'}}}}))
         with read_tools.snapshot() as store:
             data = collect(store, config, self.home, now=NOW)
@@ -232,7 +233,7 @@ class DashboardTests(unittest.TestCase):
 
         async def run():
             params = StdioServerParameters(command=sys.executable,
-                args=[str(Path(__file__).resolve().parents[1]/'server.py')], env=dict(os.environ))
+                args=['-m', 'job_agent.server'], env=dict(os.environ))
             async with stdio_client(params) as (reader, writer):
                 async with ClientSession(reader, writer) as client:
                     await client.initialize()
@@ -247,9 +248,9 @@ class DashboardTests(unittest.TestCase):
         self.assertEqual(Path(result['path']).name, 'stdio.html')
 
     def test_cli_and_mcp_generate_local_file(self):
-        import cli
-        import server
-        with patch('cli._setup_logging') as logging_setup, patch('builtins.print') as output:
+        import job_agent.cli as cli
+        import job_agent.server as server
+        with patch('job_agent.cli._setup_logging') as logging_setup, patch('builtins.print') as output:
             self.assertEqual(cli.main(['dashboard', '--out', str(self.home / 'cli.html')]), 0)
             logging_setup.assert_not_called()
         self.assertEqual(json.loads(output.call_args.args[0])['path'], str(self.home / 'cli.html'))

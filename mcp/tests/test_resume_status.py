@@ -5,18 +5,18 @@ import unittest
 from pathlib import Path
 from unittest.mock import Mock, patch
 
-from browser.base import FakeBrowser
-from config import Settings
-from engine.models import Job, Reason, Status
-from engine.queue import DeliveryEngine
-from engine.resume_contract import resume_block_reason
-from engine.spaces import TaskSpaces
-from platforms.preflight import AdapterPreflight
-from platforms.registry import create_adapters
-from service.daily import daily_once, delivery_message
-from service.deliver import preview
-from service.resume_status import resume_status
-from store import SQLiteDeliveryStore, Store
+from job_agent.browser.base import FakeBrowser
+from job_agent.config import Settings
+from job_agent.engine.models import Job, Reason, Status
+from job_agent.engine.queue import DeliveryEngine
+from job_agent.engine.resume_contract import resume_block_reason
+from job_agent.engine.spaces import TaskSpaces
+from job_agent.platforms.preflight import AdapterPreflight
+from job_agent.platforms.registry import create_adapters
+from job_agent.service.daily import daily_once, delivery_message
+from job_agent.service.deliver import preview
+from job_agent.service.resume_status import resume_status
+from job_agent.store import SQLiteDeliveryStore, Store
 
 
 class ResumeStatusTest(unittest.TestCase):
@@ -125,16 +125,16 @@ class ResumeHoldTest(unittest.TestCase):
         self.assertIn('liepin',self.store.paused_platforms())
 
     def test_mcp_preview_reports_holds_without_consuming_confirmation(self):
-        from service.mcp_backend import preview as mcp_preview, send
+        from job_agent.service.mcp_backend import preview as mcp_preview, send
         with patch.dict(os.environ,{'JOB_AGENT_HOME':self.tmp.name}), \
-             patch('service.mcp_backend.load_config',return_value=self.cfg), \
-             patch('service.tasks.start') as start:
+             patch('job_agent.service.mcp_backend.load_config',return_value=self.cfg), \
+             patch('job_agent.service.tasks.start') as start:
             result=mcp_preview([str(x) for x in self.ids])
             self.assertTrue(all(not x['delivery_enabled'] and x['delivery_hold'] for x in result['items']))
             with self.assertRaisesRegex(ValueError,'待核验'):
                 send(result['confirm_token'])
             start.assert_not_called()
-            from delivery import token_db
+            from job_agent.approvals import token_db
             with token_db() as db:
                 self.assertEqual(db.execute('SELECT used FROM approvals').fetchone()[0],0)
 

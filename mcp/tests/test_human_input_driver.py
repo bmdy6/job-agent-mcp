@@ -3,8 +3,8 @@ import json
 import subprocess
 import unittest
 from unittest.mock import patch
-from browser.ego import EgoBrowser,_SCRIPT
-from browser.input_config import InputSettings
+from job_agent.browser.ego import EgoBrowser,_SCRIPT
+from job_agent.config.input import InputSettings
 from test_ego_browser import result
 
 
@@ -40,13 +40,13 @@ globalThis.taskSpace=async()=>({ownership:"agent",tabs:async()=>[{label:"p2",ope
         self.assertNotIn('target.click()',_SCRIPT)
 
     def test_previous_position_reused_and_sensitive_text_never_logged(self):
-        with patch('browser.ego.subprocess.run') as run:
+        with patch('job_agent.browser.ego.subprocess.run') as run:
             run.return_value=result({'space_id':1,'anchor':'p1'})
             b=EgoBrowser(keepalive_seconds=0);space=b.space('test')
             run.return_value=result({'label':'p2'});page=space.new_page()
             run.return_value=result({'mouse':[123,234],'trace':[{'at':1,'x':123,'y':234}]})
             before=run.call_count
-            with self.assertLogs('browser.ego',level='DEBUG') as logged:
+            with self.assertLogs('job_agent.browser.ego',level='DEBUG') as logged:
                 page.fill('#input','PRIVATE_BODY')
                 page.hover('#input')
             self.assertEqual(run.call_count-before,2)
@@ -56,6 +56,6 @@ globalThis.taskSpace=async()=>({ownership:"agent",tabs:async()=>[{label:"p2",ope
 
     def test_risk_prevents_all_pointer_and_keyboard_actions(self):
         # The driver decodes risk separately, for safety persistence in callers.
-        from browser.base import RiskControl
-        with patch('browser.ego.subprocess.run',return_value=result(code='risk_control')):
+        from job_agent.browser.base import RiskControl
+        with patch('job_agent.browser.ego.subprocess.run',return_value=result(code='risk_control')):
             with self.assertRaises(RiskControl):EgoBrowser(keepalive_seconds=0)._call({'op':'space','name':'test'})

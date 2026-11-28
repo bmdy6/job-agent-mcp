@@ -6,9 +6,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from config import load_config
-from store import Store
-from service import scoring
+from job_agent.config import load_config
+from job_agent.store import Store
+from job_agent.service import scoring
 
 
 def response(score=82, reason='Python 项目与 JD 匹配，缺少线上运维证据。'):
@@ -32,7 +32,7 @@ class ScoringTest(unittest.TestCase):
             self.empty=store.upsert_job(platform='boss',platform_job_id='empty')
             self.zero=store.upsert_job(platform='boss',platform_job_id='zero',jd='Python',legacy_status='filtered',legacy_score=0,legacy_score_reason='技能不匹配')
             self.filtered=store.upsert_job(platform='boss',platform_job_id='filtered',jd='Python',legacy_status='filtered',legacy_score_reason='预筛不通过:采集:exclude')
-        self.spawn=patch('service.tasks.start',return_value={'id':'worker','status':'running'})
+        self.spawn=patch('job_agent.service.tasks.start',return_value={'id':'worker','status':'running'})
         self.spawn.start(); self.addCleanup(self.spawn.stop)
 
     def start(self, ids=None):
@@ -69,7 +69,7 @@ class ScoringTest(unittest.TestCase):
             with self.assertRaises(ValueError): scoring.parse_result(bad)
 
     def test_completed_projection_trace_stats_and_run(self):
-        from service import read_tools
+        from job_agent.service import read_tools
         run=self.start(); self.run_fake(run)
         job=read_tools.get_job(str(self.a))
         self.assertEqual(job['score'],82); self.assertEqual(job['status'],'scored')
@@ -106,7 +106,7 @@ class ScoringTest(unittest.TestCase):
         self.assertEqual(scoring.scoring_runs()['runs'],[])
 
     def test_spawn_failure_releases_only_unattempted_claims(self):
-        with patch('service.tasks.start',side_effect=OSError('failed')):
+        with patch('job_agent.service.tasks.start',side_effect=OSError('failed')):
             with self.assertRaises(RuntimeError): self.start()
         self.assertEqual(scoring.preview_scoring([str(self.a)])['estimated_requests'],1)
         self.assertEqual(scoring.scoring_runs()['runs'][0]['status'],'failed')
@@ -132,6 +132,46 @@ class ScoringTest(unittest.TestCase):
                 r=scoring.scoring_runs()['runs'][0]
                 self.assertEqual(r['blocked'],1)
                 self.assertEqual(r['items'][1]['error_code'],'rate_limit_budget')
+
+    def test_optional_rate_limit_header_allows_scoring_without_headers(self):
+        with (self.home/'config.yaml').open('a') as config:
+            config.write('  require_ratelimit_header: false\n')
+        with Store() as store:
+            other = store.upsert_job(platform='zhilian', platform_job_id='second', jd='Python')
+        run = self.start([self.a, other])
+        call = self.run_fake(run, responses=[(response(), {}), (response(), {})])
+        self.assertEqual(call.call_count, 2)
+        result = scoring.scoring_runs()['runs'][0]
+        self.assertEqual(result['completed'], 2)
+        self.assertEqual(result['blocked'], 0)
+
+    def test_optional_header_still_obeys_explicit_limits_and_provider_failures(self):
+        with (self.home/'config.yaml').open('a') as config:
+            config.write('  require_ratelimit_header: false\n')
+        for first in [(response(), {'x-ratelimit-remaining-tokens': '0'}),
+                      (response(), {'x-ratelimit-remaining-tokens': '1'}),
+                      scoring.ProviderRejected('HTTP_429'), TimeoutError('PRIVATE')]:
+            with self.subTest(first=first):
+                with Store() as store:
+                    n = len(store.list_jobs())
+                    ids = [store.upsert_job(platform='zhilian', platform_job_id=str(n+i), jd='Python') for i in range(2)]
+                run = self.start(ids)
+                call = self.run_fake(run, responses=[first])
+                self.assertEqual(call.call_count, 1)
+                self.assertEqual(scoring.scoring_runs()['runs'][0]['items'][1]['error_code'], 'rate_limit_budget')
+
+    def test_legacy_configs_keep_fail_closed_default(self):
+        from job_agent.config import Settings
+        from job_agent.config.daily import DailySettings
+        from job_agent.config.scoring import ScoringSettings
+        daily = self.home/'daily.yaml'
+        daily.write_text('daily:\n  enabled: false\nengine:\n  cooldown:\n    days: 30\ncollect:\n  refresh_daily: true\n')
+        before = {p: p.read_bytes() for p in (self.home/'config.yaml', daily)}
+        self.assertTrue(load_config().scoring.require_ratelimit_header)
+        self.assertTrue(Settings.model_validate({}).scoring.require_ratelimit_header)
+        self.assertTrue(ScoringSettings.model_validate({}).require_ratelimit_header)
+        self.assertFalse(DailySettings.model_validate({'enabled': False}).enabled)
+        self.assertEqual(before, {p: p.read_bytes() for p in before})
 
     def test_changed_jd_or_config_and_stop_never_pay(self):
         run=self.start()
@@ -166,7 +206,7 @@ class ScoringTest(unittest.TestCase):
 
     def test_migration_v3_is_transactional_preserves_data_and_reopens(self):
         import sqlite3
-        from store.database import MIGRATIONS
+        from job_agent.store.database import MIGRATIONS
         path=self.home/'v3.sqlite3'
         with sqlite3.connect(path) as db:
             for version,statements in MIGRATIONS:
@@ -174,11 +214,11 @@ class ScoringTest(unittest.TestCase):
                 for statement in statements: db.execute(statement)
             db.execute('PRAGMA user_version=3')
             db.execute("INSERT INTO jobs(platform,platform_job_id,collected_at,legacy_status,legacy_score,legacy_score_reason) VALUES('boss','old','2026-11-26','scored',91,'保留理由')")
-        with Store(path) as db:
-            self.assertEqual(db.schema_version,6)
+        with Store(path, migrate=True) as db:
+            self.assertEqual(db.schema_version,7)
             self.assertEqual(db.get_job(1)['legacy_score_reason'],'保留理由')
             self.assertEqual(db.connection.execute('SELECT version FROM schema_migrations').fetchall()[0][0],4)
-        with Store(path) as db:
+        with Store(path, migrate=True) as db:
             self.assertEqual(db.connection.execute('SELECT count(*) FROM schema_migrations WHERE version=4').fetchone()[0],1)
 
     def test_duplicate_worker_cannot_pay_twice(self):
@@ -199,13 +239,13 @@ class ScoringTest(unittest.TestCase):
         self.assertEqual(scoring.scoring_runs()['runs'][0]['items'][0]['error_code'],'job_changed')
 
     def test_deleted_native_score_not_counted_in_funnel(self):
-        from service.read_tools import funnel_stats
+        from job_agent.service.read_tools import funnel_stats
         run=self.start();self.run_fake(run)
         with Store() as s: s.upsert_job(platform='boss',platform_job_id='new',deleted_at='2026-11-26')
         self.assertEqual(funnel_stats()['own']['funnel']['AI评分'],2)
 
     def test_legacy_pending_becomes_scored_but_sent_state_is_preserved(self):
-        from service.read_tools import get_job
+        from job_agent.service.read_tools import get_job
         with Store() as s: s.upsert_job(platform='boss',platform_job_id='new',legacy_status='pending')
         run=self.start(); self.run_fake(run)
         self.assertEqual(get_job(str(self.a))['status'],'scored')
@@ -214,8 +254,8 @@ class ScoringTest(unittest.TestCase):
         self.assertEqual(get_job(str(self.a))['score'],82)
 
     def test_native_score_orders_daily_without_rewriting_legacy(self):
-        from store import SQLiteDeliveryStore
-        from config import Settings
+        from job_agent.store import SQLiteDeliveryStore
+        from job_agent.config import Settings
         with Store() as s:
             s.upsert_job(platform='boss',platform_job_id='new',url='https://example.invalid/new')
             second=s.upsert_job(platform='boss',platform_job_id='second',url='https://example.invalid/second',jd='Python')
@@ -230,7 +270,7 @@ class ScoringTest(unittest.TestCase):
 
     def test_migration_failure_rolls_back_all_new_tables(self):
         import sqlite3
-        from store.database import MIGRATIONS
+        from job_agent.store.database import MIGRATIONS
         path=self.home/'bad-v3.sqlite3'
         with sqlite3.connect(path) as db:
             for version,statements in MIGRATIONS:
@@ -238,22 +278,22 @@ class ScoringTest(unittest.TestCase):
                 for statement in statements: db.execute(statement)
             db.execute('PRAGMA user_version=3')
             db.execute('CREATE TABLE scoring_items(conflict TEXT)')
-        with self.assertRaises(sqlite3.OperationalError): Store(path)
+        with self.assertRaises(sqlite3.OperationalError): Store(path, migrate=True)
         with sqlite3.connect(path) as db:
             self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],3)
             self.assertIsNone(db.execute("SELECT name FROM sqlite_master WHERE name='scoring_runs'").fetchone())
             self.assertIsNone(db.execute("SELECT name FROM sqlite_master WHERE name='schema_migrations'").fetchone())
 
     def test_dead_worker_recovery_preserves_attempted_claim_and_releases_unattempted(self):
-        from service import tasks
-        from store import scoring as sql
+        from job_agent.service import tasks
+        from job_agent.store import scoring as sql
         with Store() as s: other=s.upsert_job(platform='zhilian',platform_job_id='second',jd='Python')
         run=self.start([self.a,other])
         with Store() as s:
             sql.begin_run(s,run); sql.begin_item(s,run,self.a)
         with tasks.locked('scoring') as path:
             tasks.write(path,{'id':'dead','pid':12345,'status':'running','run_id':run,'stop_path':str(self.home/'stop')})
-        with patch('service.tasks.os.kill',side_effect=ProcessLookupError):
+        with patch('job_agent.service.tasks.os.kill',side_effect=ProcessLookupError):
             self.assertEqual(tasks.status('scoring')['status'],'interrupted')
         result=scoring.scoring_runs()['runs'][0]
         self.assertEqual(result['unverified'],1); self.assertEqual(result['blocked'],1)
@@ -282,3 +322,25 @@ class ScoringTest(unittest.TestCase):
 
 
 if __name__=='__main__': unittest.main()
+
+
+class AccountingScoringTest(unittest.TestCase):
+    setUp=ScoringTest.setUp
+    start=ScoringTest.start
+    run_fake=ScoringTest.run_fake
+    def test_amount_budget_and_invalid_output_persist_cost(self):
+        import yaml
+        path=self.home/'config.yaml';data=yaml.safe_load(path.read_text())
+        data['llm']={'models':{'fixture':{'model':'fictional','pricing':{
+            'input_per_million':10,'cached_input_per_million':2,'output_per_million':30,'currency':'TEST'}}},
+            'scoring':{'model_ref':'fixture','daily_cost':.001}}
+        path.write_text(yaml.safe_dump(data))
+        with Store() as store:other=store.upsert_job(platform='boss',platform_job_id='budget-other',jd='Python')
+        run=self.start([self.a,other])
+        call=self.run_fake(run,responses=[(response(999),{'x-ratelimit-remaining-tokens':'1000000'})])
+        self.assertEqual(call.call_count,1)
+        result=scoring.scoring_runs()['runs'][0]
+        self.assertEqual(result['items'][1]['error_code'],'daily_cost_exhausted')
+        usage=json.loads(result['items'][0]['usage_json'])
+        self.assertAlmostEqual(usage['cost'],.0025)
+        self.assertEqual(usage['run_id'],run)

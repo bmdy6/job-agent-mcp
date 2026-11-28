@@ -1,3 +1,4 @@
+from state_helpers import read_state_file, write_state_file
 import json
 import os
 import tempfile
@@ -6,9 +7,9 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from config import Settings
-from monitor.notifications import poll_replies
-from store import Store
+from job_agent.config import Settings
+from job_agent.monitor.notifications import poll_replies
+from job_agent.store import Store
 
 
 class BackfillTests(unittest.TestCase):
@@ -25,7 +26,7 @@ class BackfillTests(unittest.TestCase):
         self.addCleanup(self.store.close)
         self.job = self.store.upsert_job(platform='boss', platform_job_id='j1', company='公司', title='岗位')
         self.store.record_delivery(self.job, status='sent')
-        self.sender = patch('notify.send_one', return_value={'success': True}).start()
+        self.sender = patch('job_agent.notify.send_one', return_value={'success': True}).start()
         self.addCleanup(patch.stopall)
 
     def add(self, ident, stamp):
@@ -38,14 +39,14 @@ class BackfillTests(unittest.TestCase):
         self.add('old', now-48*3600-1)
         self.add('boundary', now-48*3600)
         self.add('recent', now-1)
-        with patch('monitor.notifications.time.time', return_value=now):
+        with patch('job_agent.monitor.notifications.time.time', return_value=now):
             result = poll_replies(self.store, self.config)
         self.assertEqual(result['sent'], 2)
         self.assertEqual(result['suppressed'], 1)
         self.assertEqual(len(self.store.list_replies()), 3)
         self.assertEqual(poll_replies(self.store, self.config)['sent'], 0)
         self.add('late_fetch', now-48*3600+1)
-        with patch('monitor.notifications.time.time', return_value=now+3*86400):
+        with patch('job_agent.monitor.notifications.time.time', return_value=now+3*86400):
             self.assertEqual(poll_replies(self.store, self.config)['sent'], 1)
         self.assertNotIn('old', [c.args[2].split('HR 回复：\n')[1] for c in self.sender.call_args_list])
 
@@ -68,11 +69,11 @@ class BackfillTests(unittest.TestCase):
 class ServiceTests(unittest.TestCase):
     def test_mcp_control_ignores_delivery_backend_and_preserves_confirm(self):
         import asyncio
-        import server
+        import job_agent.server as server
         async def check():
-            with patch('service.monitor.start', return_value={'running': True}) as start, \
-                 patch('service.monitor.stop', return_value={'stopped': True}) as stop, \
-                 patch('service.monitor.status', return_value={'running': True, 'last_poll_at': 123}) as status:
+            with patch('job_agent.service.monitor.start', return_value={'running': True}) as start, \
+                 patch('job_agent.service.monitor.stop', return_value={'stopped': True}) as stop, \
+                 patch('job_agent.service.monitor.status', return_value={'running': True, 'last_poll_at': 123}) as status:
                 with self.assertRaises(Exception):
                     await server.mcp.call_tool('start_reply_monitor', {'confirm': False})
                 start.assert_not_called()
@@ -84,11 +85,11 @@ class ServiceTests(unittest.TestCase):
         asyncio.run(check())
 
     def test_launchd_start_stop_and_status_are_scoped(self):
-        from service import monitor
+        from job_agent.service import monitor
         from subprocess import CompletedProcess
         with tempfile.TemporaryDirectory() as directory, patch.dict(os.environ, JOB_AGENT_HOME=directory), \
-             patch('service.monitor.plist_path', return_value=Path(directory)/'monitor.plist'), \
-             patch('service.monitor.subprocess.run') as run:
+             patch('job_agent.service.monitor.plist_path', return_value=Path(directory)/'monitor.plist'), \
+             patch('job_agent.service.monitor.subprocess.run') as run:
             self.assertFalse(monitor.status()['running'])
             run.assert_not_called()
             import plistlib
@@ -107,14 +108,14 @@ class ServiceTests(unittest.TestCase):
 
 class RuntimeTests(unittest.TestCase):
     def test_space_takeover_exits_cleanly_without_retry_and_records_status(self):
-        from browser.base import FakeBrowser
-        from monitor.runtime import run
+        from job_agent.browser.base import FakeBrowser
+        from job_agent.monitor.runtime import run
         with tempfile.TemporaryDirectory() as home, patch.dict(os.environ, JOB_AGENT_HOME=home):
             browser = FakeBrowser()
             browser.unavailable.add('job-agent 监听')
-            with patch('monitor.runtime.create_browser', return_value=browser), patch('monitor.runtime.create_sources', return_value=[]):
+            with patch('job_agent.monitor.runtime.create_browser', return_value=browser), patch('job_agent.monitor.runtime.create_sources', return_value=[]):
                 self.assertEqual(run(), 0)
-            state = json.loads(Path(home, 'monitor-runtime.json').read_text())
+            state = json.loads(read_state_file(Path(home, 'monitor-runtime.json')))
             self.assertEqual(state['state'], 'space_unavailable')
             self.assertIn('last_poll_at', state)
             self.assertEqual(state['result']['stopped'], True)
@@ -130,8 +131,8 @@ class RuntimeTests(unittest.TestCase):
 
 class BossLiveRegressionTests(unittest.TestCase):
     def test_sessions_use_stable_identity_and_real_message_times(self):
-        from browser.base import FakePage, FakeSpace
-        from platforms.boss.replies import ReplySource
+        from job_agent.browser.base import FakePage, FakeSpace
+        from job_agent.platforms.boss.replies import ReplySource
         class Page(FakePage):
             def click(self, selector):
                 raise AssertionError('Virtualized numeric row indices must not be clicked')
@@ -147,7 +148,7 @@ class BossLiveRegressionTests(unittest.TestCase):
 
 class LiepinLiveRegressionTests(unittest.TestCase):
     def test_system_welcome_without_job_mapping_is_not_hr_reply_or_fetch_failure(self):
-        from platforms.liepin.pages import parse_messages
+        from job_agent.platforms.liepin.pages import parse_messages
         data = {'ready': True, 'items': [
             {'msgId': 'welcome', 'msgTime': 1795505482681, 'msg': '系统欢迎', 'direction': '1',
              'msgType': 'txt', 'extType': 201, 'bizData': {}},
@@ -159,10 +160,10 @@ class LiepinLiveRegressionTests(unittest.TestCase):
 class ServiceIsolationTests(unittest.TestCase):
     def test_other_data_home_cannot_control_installed_service(self):
         import plistlib
-        from service import monitor
+        from job_agent.service import monitor
         with tempfile.TemporaryDirectory() as root, patch.dict(os.environ, JOB_AGENT_HOME=root+'/tests'), \
-             patch('service.monitor.plist_path', return_value=Path(root)/'monitor.plist'), \
-             patch('service.monitor.subprocess.run') as run:
+             patch('job_agent.service.monitor.plist_path', return_value=Path(root)/'monitor.plist'), \
+             patch('job_agent.service.monitor.subprocess.run') as run:
             Path(root, 'monitor.plist').write_bytes(plistlib.dumps({'EnvironmentVariables': {'JOB_AGENT_HOME': root+'/live'}}))
             self.assertFalse(monitor.status()['installed'])
             self.assertFalse(monitor.stop()['stopped'])
@@ -173,15 +174,15 @@ class ServiceIsolationTests(unittest.TestCase):
 
 class SpaceAlertTests(unittest.TestCase):
     def test_driver_and_poller_do_not_duplicate_space_unavailable_alert(self):
-        from browser.base import SpaceUnavailable
-        from monitor.runtime import create_browser
-        from monitor import Monitor
+        from job_agent.browser.base import SpaceUnavailable
+        from job_agent.monitor.runtime import create_browser
+        from job_agent.monitor import Monitor
         config = Settings.model_validate({'notify': {'enabled': True, 'channels': {
             'tg': {'type': 'telegram', 'enabled': True, 'chat_id': 'fake'}}}})
         with tempfile.TemporaryDirectory() as home, patch.dict(os.environ, JOB_AGENT_HOME=home):
             browser = create_browser(config)
             with Store() as store, patch.object(browser, '_call', side_effect=SpaceUnavailable('owned')), \
-                 patch('notify.send_one', return_value={'success': True}) as send:
+                 patch('job_agent.notify.send_one', return_value={'success': True}) as send:
                 monitor = Monitor(browser, [], store, config)
                 monitor.poll_once()
                 self.assertTrue(monitor.stopped)
@@ -211,7 +212,7 @@ class InstallerTests(unittest.TestCase):
 
 class ServiceBootstrapTests(unittest.TestCase):
     def test_start_retries_transient_bootstrap_after_stop(self):
-        from service import monitor
+        from job_agent.service import monitor
         from subprocess import CompletedProcess
         with patch.object(monitor, 'installed', return_value=True), \
              patch.object(monitor, 'status', side_effect=[{'loaded': False}, {'loaded': False}, {'running': True}]), \
@@ -224,7 +225,7 @@ class ServiceBootstrapTests(unittest.TestCase):
 
 class ServiceStopTests(unittest.TestCase):
     def test_stop_waits_until_old_process_has_exited(self):
-        from service import monitor
+        from job_agent.service import monitor
         from subprocess import CompletedProcess
         with patch.object(monitor, 'status', return_value={'loaded': True, 'running': True, 'pid': 12345}), \
              patch.object(monitor, 'command', return_value=CompletedProcess([], 0)), \
@@ -237,7 +238,7 @@ class ServiceStopTests(unittest.TestCase):
 
 class MonitorConfigIsolationTests(unittest.TestCase):
     def test_new_collection_delivery_settings_do_not_block_monitor_or_get_rewritten(self):
-        from monitor.config import load_settings
+        from job_agent.monitor.config import load_settings
         with tempfile.TemporaryDirectory() as home, patch.dict(os.environ,JOB_AGENT_HOME=home):
             path=Path(home)/'config.yaml'
             content='''daily: {enabled: true}

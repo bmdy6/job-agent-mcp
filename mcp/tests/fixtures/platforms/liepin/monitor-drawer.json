@@ -1,0 +1,16 @@
+{
+  "provenance": {
+    "captured_on": "2026-11-28",
+    "browser": "Ego Lite / job-agent 监听调试",
+    "kind": "observed_geometry_synthetic_identity",
+    "redaction": "Only DOM geometry and class names retained; identity is synthetic."
+  },
+  "contact": {"id": "contact-fixture", "class": "im-ui-contact-list-item im-ui-contact-item im-ui-has-contact-action"},
+  "viewport": {"width": 1264, "height": 862},
+  "rects": [
+    {"x": 1253, "y": 57, "width": 272, "height": 68},
+    {"x": 1014.3357543945312, "y": 57, "width": 272, "height": 68},
+    {"x": 973, "y": 57, "width": 272, "height": 68}
+  ],
+  "settled_after_ms": 1600
+}

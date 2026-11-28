@@ -10,9 +10,6 @@ from pathlib import Path
 import signal
 import sys
 
-root=Path(__file__).resolve().parents[1]
-sys.path.insert(0,str(root/'mcp'))
-
 
 def main():
     home=Path(os.environ.get('JOB_AGENT_HOME','~/.job-agent')).expanduser().resolve()
@@ -25,8 +22,8 @@ def main():
     def stop(*_):
         raise KeyboardInterrupt
     signal.signal(signal.SIGTERM,stop)
-    from cli import main as cli
-    return cli(['daily','--once',*sys.argv[1:]])
+    from job_agent.cli import main as cli
+    return cli(['daily','--once','--scheduled',*sys.argv[1:]])
 
 
 if __name__=='__main__':

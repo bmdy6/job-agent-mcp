@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import Mock
-from browser.base import BrowserError, FakePage, FakeSpace, PageTimeout
-from platforms.liepin import pages
-from platforms.liepin.replies import ReplySource
+from job_agent.browser.base import BrowserError, FakePage, FakeSpace, PageTimeout
+from job_agent.platforms.liepin import pages
+from job_agent.platforms.liepin.replies import ReplySource
 
 class LiepinDiagnosticsTests(unittest.TestCase):
     def page(self):
@@ -16,7 +16,7 @@ class LiepinDiagnosticsTests(unittest.TestCase):
             with self.subTest(stage=stage):
                 p=self.page(); space=FakeSpace('test',pages=[p]); cursor=Mock()
                 setattr(space if method=='new_page' else p,method,Mock(side_effect=PageTimeout('private body https://secret/name')))
-                with self.assertLogs('platforms.liepin.replies',level='INFO') as logs:
+                with self.assertLogs('job_agent.platforms.liepin.replies',level='INFO') as logs:
                     with self.assertRaises(PageTimeout) as caught: ReplySource().fetch(space,cursor=cursor)
                 self.assertEqual(caught.exception.stage,stage)
                 self.assertEqual(caught.exception.reason_code,'page_timeout')

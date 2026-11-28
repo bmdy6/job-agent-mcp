@@ -1,3 +1,4 @@
+from state_helpers import business_snapshot
 """#50 collection, reply and cohort contracts."""
 import json
 import os
@@ -6,22 +7,22 @@ import tempfile
 import unittest
 from unittest.mock import patch
 from contextlib import closing
-from config import Settings
-from platforms.base import JobListing
-from store import Store, SQLiteDeliveryStore
+from job_agent.config import Settings
+from job_agent.platforms.base import JobListing
+from job_agent.store import Store, SQLiteDeliveryStore
 
 class CollectionSignalsTests(unittest.TestCase):
     def test_activity_vocabulary_and_unknown(self):
-        from platforms.signals import activity
+        from job_agent.platforms.signals import activity
         for raw, expected in [('刚刚活跃','now'),('在线','now'),('今日活跃','today'),('3日内活跃','three_days'),('本周活跃','week'),('近一个月活跃','inactive'),('2周前活跃','inactive'),('', 'unknown'),('职位更新今天','unknown')]:
             self.assertEqual(activity(raw), expected, raw)
 
     def test_four_platform_parsers_and_storage(self):
         from importlib import import_module
-        from platforms.base import SearchQuery
-        from store.collection import CollectionRepository
+        from job_agent.platforms.base import SearchQuery
+        from job_agent.store.collection import CollectionRepository
         for name in ('boss','zhilian','liepin','job51'):
-            module=import_module('platforms.'+name+'.pages')
+            module=import_module('job_agent.platforms.'+name+'.pages')
             data=json.loads((Path(__file__).parent/'fixtures/platforms'/name/'search-list.json').read_text())
             data['rows' if name in ('boss','zhilian') else 'items'][0]['hr_activity_raw']='今日活跃'
             rows=module.search_rows(data) if name in ('boss','zhilian') else module.parse_search(data,SearchQuery('AI','上海'))
@@ -34,11 +35,11 @@ class CollectionSignalsTests(unittest.TestCase):
                 self.assertEqual(saved['hr_activity_raw'],'今日活跃')
                 self.assertEqual(saved['experience'],first.extra['experience'])
                 self.assertEqual(saved['education'],first.extra['education'])
-                self.assertEqual(store.schema_version,6)
+                self.assertEqual(store.schema_version,7)
 
     def test_ranking_and_opt_in_filter(self):
-        from engine.config import EngineSettings
-        from engine.job_ranking import rank_jobs
+        from job_agent.config.engine import EngineSettings
+        from job_agent.engine.job_ranking import rank_jobs
         rows=[dict(id=i,hr_activity=a,experience=e,collected_at='2026-11-26',legacy_score=s) for i,a,e,s in [(1,'inactive','1-3年',100),(2,'unknown','应届',99),(3,'today','3-5年',80),(4,'now','3-5年',10),(5,'today','1-3年',70)]]
         settings=EngineSettings()
         self.assertEqual([j['id'] for j in rank_jobs(rows,settings)], [4,3,5,2,1])
@@ -49,7 +50,7 @@ class CollectionSignalsTests(unittest.TestCase):
 
 class ReplySignalsTests(unittest.TestCase):
     def test_rule_categories_and_no_false_invitation(self):
-        from service.reply_classification import classify
+        from job_agent.service.reply_classification import classify
         settings=Settings().scoring
         cases=[('方便明天下午三点线上面试吗？','interview'),('请发一份简历','resume_request'),
                ('暂不考虑，祝你早日找到合适工作','rejection'),('您有几年开发经验？','question'),
@@ -63,10 +64,10 @@ class ReplySignalsTests(unittest.TestCase):
         self.assertIn('明天',result['time_text'])
 
     def test_model_contract_and_failure_no_retry(self):
-        from service.reply_classification import classify
+        from job_agent.service.reply_classification import classify
         settings=Settings().scoring
         response={'choices':[{'finish_reason':'stop','message':{'content':json.dumps(dict(category='interview',confidence=.9,time_text='周五',form='phone'))}}]}
-        with patch('service.reply_classification.resolve_key',return_value='secret'), patch('service.reply_classification.request_completion',return_value=(response,{})) as request:
+        with patch('job_agent.service.reply_classification.resolve_key',return_value='secret'), patch('job_agent.service.reply_classification.request_completion',return_value=(response,{})) as request:
             result=classify('周五打个电话聊聊合适吗',settings,use_model=True)
             self.assertEqual(result['category'],'interview')
             self.assertEqual(result['source'],'model')
@@ -75,7 +76,7 @@ class ReplySignalsTests(unittest.TestCase):
             self.assertIn('max_completion_tokens',payload)
             self.assertNotIn('max_tokens',payload)
             self.assertEqual(request.call_count,1)
-        with patch('service.reply_classification.resolve_key',side_effect=ValueError('secret')):
+        with patch('job_agent.service.reply_classification.resolve_key',side_effect=ValueError('secret')):
             result=classify('这周聊聊',settings,use_model=True)
             self.assertEqual(result['category'],'other')
             self.assertEqual(result['confidence'],0)
@@ -83,8 +84,8 @@ class ReplySignalsTests(unittest.TestCase):
             self.assertNotIn('secret',str(result))
 
     def test_pending_schedule_idempotency_and_status_exclusion(self):
-        from service.reply_classification import classify_pending
-        from store.signals import invitations
+        from job_agent.service.reply_classification import classify_pending
+        from job_agent.store.signals import invitations
         with tempfile.TemporaryDirectory() as tmp,Store(Path(tmp)/'db') as store:
             job=store.upsert_job(platform='boss',platform_job_id='a',url='https://example.com/job')
             store.record_delivery(job,status='sent',created_at='2026-11-25T00:00:00+00:00')
@@ -100,8 +101,8 @@ class ReplySignalsTests(unittest.TestCase):
 
 class GreetingStatsTests(unittest.TestCase):
     def test_unique_temporal_cohorts_intervals_and_missing_version(self):
-        from store.signals import greeting_statistics, save_classification
-        from platforms.greeting import greeting_version
+        from job_agent.store.signals import greeting_statistics, save_classification
+        from job_agent.platforms.greeting import greeting_version
         with tempfile.TemporaryDirectory() as tmp,Store(Path(tmp)/'db') as store:
             for i in range(3):
                 j=store.upsert_job(platform='boss',platform_job_id=str(i))
@@ -126,7 +127,7 @@ class GreetingStatsTests(unittest.TestCase):
 class MigrationSixTests(unittest.TestCase):
     def v5(self,path):
         import sqlite3
-        from store.database import MIGRATIONS
+        from job_agent.store.database import MIGRATIONS
         with closing(sqlite3.connect(path)) as db, db:
             db.execute('CREATE TABLE schema_migrations(version INTEGER PRIMARY KEY,applied_at TEXT)')
             for version,statements in MIGRATIONS:
@@ -142,8 +143,8 @@ class MigrationSixTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'v5.db';self.v5(path)
             for _ in range(2):
-                with Store(path) as store:
-                    self.assertEqual(store.schema_version,6)
+                with Store(path, migrate=True) as store:
+                    self.assertEqual(store.schema_version,7)
                     self.assertEqual(store.get_job(1)['legacy_score_reason'],'keep')
                     self.assertEqual(store.get_job(1)['hr_activity'],'unknown')
                     self.assertEqual(store.list_deliveries()[0]['greeting'],'original')
@@ -153,11 +154,11 @@ class MigrationSixTests(unittest.TestCase):
 
     def test_failed_migration_restores_schema_and_ledger(self):
         import sqlite3
-        from store import database
+        from job_agent.store import database
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'v5.db';self.v5(path)
             bad=[(v,sql+['INVALID SQL'] if v==6 else sql) for v,sql in database.MIGRATIONS]
-            with patch.object(database,'MIGRATIONS',bad),self.assertRaises(sqlite3.OperationalError): Store(path)
+            with patch.object(database,'MIGRATIONS',bad),self.assertRaises(sqlite3.OperationalError): Store(path, migrate=True)
             with closing(sqlite3.connect(path)) as db, db:
                 self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0],5)
                 self.assertNotIn('hr_activity',[r[1] for r in db.execute('PRAGMA table_info(jobs)')])
@@ -165,19 +166,19 @@ class MigrationSixTests(unittest.TestCase):
 
 class ModelValidationTests(unittest.TestCase):
     def test_invalid_refused_or_invented_evidence_is_fallback(self):
-        from service.reply_classification import classify
+        from job_agent.service.reply_classification import classify
         valid=dict(category='interview',confidence=.9,time_text='周五',form='phone')
         variations=[dict(valid,confidence=True),dict(valid,confidence=-1),dict(valid,time_text='明年'),
                     dict(valid,form='onsite'),dict(valid,category='offer'),dict(valid,confidence=.2)]
         for value in variations:
             response={'choices':[{'finish_reason':'stop','message':{'content':json.dumps(value)}}]}
-            with patch('service.reply_classification.resolve_key',return_value='hidden'),patch('service.reply_classification.request_completion',return_value=(response,{})):
+            with patch('job_agent.service.reply_classification.resolve_key',return_value='hidden'),patch('job_agent.service.reply_classification.request_completion',return_value=(response,{})):
                 outcome=classify('周五打个电话聊聊合适吗',Settings().scoring,use_model=True)
                 self.assertEqual(outcome['category'],'other')
                 self.assertEqual(outcome['error'],'invalid_model_result')
 
     def test_model_cap_and_excluded_synthetic_replies(self):
-        from service.reply_classification import classify_pending
+        from job_agent.service.reply_classification import classify_pending
         cfg=Settings(engine={'monitor':{'classification_model_enabled':True,'classification_model_limit':1}})
         with tempfile.TemporaryDirectory() as tmp,Store(Path(tmp)/'db') as store:
             j=store.upsert_job(platform='boss',platform_job_id='j')
@@ -185,7 +186,7 @@ class ModelValidationTests(unittest.TestCase):
             for i in range(4): ids.append(store.add_reply(j,message_id=str(i),direction='inbound',body='这周聊聊'))
             store.add_reply(j,message_id='status',direction='inbound',body='明天面试',id_origin='application_status')
             store.add_reply(j,message_id='excerpt',direction='inbound',body='明天面试',is_excerpt=True)
-            with patch('service.reply_classification.resolve_key',side_effect=ValueError('hidden')) as resolve:
+            with patch('job_agent.service.reply_classification.resolve_key',side_effect=ValueError('hidden')) as resolve:
                 stats=classify_pending(store,cfg)
                 self.assertEqual(stats['classified'],6)
                 self.assertEqual(stats['model_calls'],1)
@@ -196,8 +197,8 @@ class ModelValidationTests(unittest.TestCase):
 
 class SignalMCPTests(unittest.IsolatedAsyncioTestCase):
     async def test_tools_funnel_briefing_and_readonly(self):
-        import server
-        from store.signals import save_classification
+        import job_agent.server as server
+        from job_agent.store.signals import save_classification
         with tempfile.TemporaryDirectory() as tmp,patch.dict(os.environ,JOB_AGENT_HOME=tmp):
             Path(tmp,'config.yaml').write_text('engine: {backend: own}\n')
             with Store() as store:
@@ -205,8 +206,8 @@ class SignalMCPTests(unittest.IsolatedAsyncioTestCase):
                 store.record_delivery(j,status='sent',greeting='v1',created_at='2026-11-24T00:00:00+00:00')
                 r=store.add_reply(j,message_id='r',direction='inbound',body='明天线上面试',occurred_at='2026-11-26T00:00:00+00:00')
                 save_classification(store,r,dict(category='interview',confidence=.95,source='rule',time_text='明天',form='online'))
-            before=Path(tmp,'jobs.sqlite3').read_bytes()
-            with patch('service.monitor.status',return_value={}),patch('service.reply_classification.request_completion',side_effect=AssertionError('No model')):
+            before=business_snapshot(Path(tmp,'jobs.sqlite3'))
+            with patch('job_agent.service.monitor.status',return_value={}),patch('job_agent.service.reply_classification.request_completion',side_effect=AssertionError('No model')):
                 stats=(await server.mcp.call_tool('greeting_stats',{}))[1]
                 self.assertEqual(stats['total']['interview_invited'],1)
                 schedule=(await server.mcp.call_tool('interview_schedule',{}))[1]
@@ -219,7 +220,7 @@ class SignalMCPTests(unittest.IsolatedAsyncioTestCase):
                 briefing=(await server.mcp.call_tool('briefing',{}))[1]
                 self.assertIn('greeting_stats',briefing)
                 self.assertEqual(briefing['todos']['interview_invitations']['count'],1)
-            self.assertEqual(Path(tmp,'jobs.sqlite3').read_bytes(),before)
+            self.assertEqual(business_snapshot(Path(tmp,'jobs.sqlite3')),before)
 
 class DailySignalTests(unittest.TestCase):
     def test_daily_old_before_new_and_activity_within_cohort(self):
@@ -232,16 +233,16 @@ class DailySignalTests(unittest.TestCase):
             cfg.engine.minimum_hr_activity='today'
             rows=store.daily_candidates(cfg.engine,cutoff=2,clock=1800000000)
             self.assertEqual([r['platform_job_id'] for r in rows],['b','c'])
-            from service.deliver import preview
+            from job_agent.service.deliver import preview
             with self.assertRaisesRegex(ValueError,'minimum HR activity'):
                 preview(store,cfg,job_ids=[1])
 
 class MonitorSignalTests(unittest.TestCase):
     def test_invitation_alert_is_separate_label_and_deduplicated(self):
         import time
-        from monitor import Monitor
-        from browser.base import FakeBrowser
-        from platforms.base import ReplyEvent
+        from job_agent.monitor import Monitor
+        from job_agent.browser.base import FakeBrowser
+        from job_agent.platforms.base import ReplyEvent
         class Source:
             platform='boss'
             def fetch(self,*args,**kwargs):
@@ -250,7 +251,7 @@ class MonitorSignalTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp,patch.dict(os.environ,JOB_AGENT_HOME=tmp),Store() as store:
             j=store.upsert_job(platform='boss',platform_job_id='j')
             store.record_delivery(j,status='sent')
-            with patch('notify.send_one',return_value={'success':True}) as sender:
+            with patch('job_agent.notify.send_one',return_value={'success':True}) as sender:
                 monitor=Monitor(FakeBrowser(),[Source()],store,config)
                 self.assertEqual(monitor.poll_once()['added'],1)
                 self.assertIn('面试邀约（待确认）',sender.call_args.args[1])
@@ -265,7 +266,7 @@ class MonitorSignalTests(unittest.TestCase):
 
 class ClassificationLifecycleTests(unittest.TestCase):
     def test_monitor_loads_same_scoring_settings(self):
-        from monitor.config import load_settings
+        from job_agent.monitor.config import load_settings
         with tempfile.TemporaryDirectory() as tmp,patch.dict(os.environ,JOB_AGENT_HOME=tmp):
             Path(tmp,'config.yaml').write_text('scoring: {model: custom-scoring, service_tier: flex, key_source: env, api_key_env: TEST_KEY}\n')
             cfg,_=load_settings()
@@ -274,8 +275,8 @@ class ClassificationLifecycleTests(unittest.TestCase):
             self.assertEqual(cfg.scoring.api_key_env,'TEST_KEY')
 
     def test_backlog_survives_batch_cap_and_dispatched_crash_never_retries(self):
-        from service.reply_classification import classify_pending
-        from store.signals import claim_classification
+        from job_agent.service.reply_classification import classify_pending
+        from job_agent.store.signals import claim_classification
         cfg=Settings(engine={'monitor':{'classification_batch_limit':1,'classification_model_enabled':True}})
         with tempfile.TemporaryDirectory() as tmp,Store(Path(tmp)/'db') as store:
             j=store.upsert_job(platform='boss',platform_job_id='j')
@@ -283,7 +284,7 @@ class ClassificationLifecycleTests(unittest.TestCase):
             b=store.add_reply(j,message_id='b',direction='inbound',body='方便明天线上面试吗')
             c=store.add_reply(j,message_id='c',direction='inbound',body='周五聊聊')
             self.assertTrue(claim_classification(store,c))
-            with patch('service.reply_classification.request_completion',side_effect=AssertionError('No retry')):
+            with patch('job_agent.service.reply_classification.request_completion',side_effect=AssertionError('No retry')):
                 self.assertEqual(classify_pending(store,cfg)['classified'],1)
                 self.assertEqual(classify_pending(store,cfg)['classified'],1)
             rows={r['id']:r for r in store.list_replies()}
@@ -291,20 +292,20 @@ class ClassificationLifecycleTests(unittest.TestCase):
             self.assertEqual(rows[b]['classification'],'interview')
 
     def test_migration_does_not_queue_historical_paid_classification(self):
-        from service.reply_classification import classify_pending
+        from job_agent.service.reply_classification import classify_pending
         cfg=Settings(engine={'monitor':{'classification_model_enabled':True}})
         with tempfile.TemporaryDirectory() as tmp:
             path=Path(tmp)/'db';MigrationSixTests().v5(path)
-            with Store(path) as store,patch('service.reply_classification.request_completion',side_effect=AssertionError('No historical model')):
+            with Store(path, migrate=True) as store,patch('job_agent.service.reply_classification.request_completion',side_effect=AssertionError('No historical model')):
                 self.assertEqual(classify_pending(store,cfg)['classified'],0)
 
 
 class NotificationBacklogTests(unittest.TestCase):
     def test_backlog_waits_for_classification_without_losing_invitation_alert(self):
         import time
-        from monitor import Monitor
-        from browser.base import FakeBrowser
-        from platforms.base import ReplyEvent
+        from job_agent.monitor import Monitor
+        from job_agent.browser.base import FakeBrowser
+        from job_agent.platforms.base import ReplyEvent
         class Source:
             platform='boss'
             def fetch(self,*args,**kwargs):
@@ -313,7 +314,7 @@ class NotificationBacklogTests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp,patch.dict(os.environ,JOB_AGENT_HOME=tmp),Store() as store:
             j=store.upsert_job(platform='boss',platform_job_id='j')
             store.record_delivery(j,status='sent')
-            with patch('notify.send_one',return_value={'success':True}) as sender:
+            with patch('job_agent.notify.send_one',return_value={'success':True}) as sender:
                 monitor=Monitor(FakeBrowser(),[Source()],store,cfg)
                 self.assertEqual(monitor.poll_once()['sent'],1)
                 self.assertEqual(monitor.poll_once()['sent'],1)

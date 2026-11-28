@@ -3,14 +3,14 @@ from pathlib import Path
 from types import SimpleNamespace
 import unittest
 from unittest.mock import patch
-from browser.base import FakeBrowser, FakePage, FakeSpace
-from engine.models import Job
-from platforms.liepin.apply import LiepinAdapter
-from platforms.liepin.replies import LiepinReplySource
-from platforms.liepin import pages as lp
-from platforms.job51.apply import Job51Adapter
-from platforms.job51.replies import Job51ReplySource
-from platforms.job51 import pages as jp
+from job_agent.browser.base import FakeBrowser, FakePage, FakeSpace
+from job_agent.engine.models import Job
+from job_agent.platforms.liepin.apply import LiepinAdapter
+from job_agent.platforms.liepin.replies import LiepinReplySource
+from job_agent.platforms.liepin import pages as lp
+from job_agent.platforms.job51.apply import Job51Adapter
+from job_agent.platforms.job51.replies import Job51ReplySource
+from job_agent.platforms.job51 import pages as jp
 
 ROOT = Path(__file__).parent / 'fixtures/platforms'
 
@@ -48,7 +48,7 @@ class SequencePage(FakePage):
 
 class AdapterBTests(unittest.TestCase):
     def test_job51_failed_attachment_event_is_reported_without_success_timeout(self):
-        from browser.base import PageTimeout
+        from job_agent.browser.base import PageTimeout
         class FailedReceiptPage(SequencePage):
             def wait_for(self, selector, **kwargs):
                 if selector == 'html[data-job-agent-attachment-status="1"]':
@@ -56,7 +56,7 @@ class AdapterBTests(unittest.TestCase):
                 return super().wait_for(selector, **kwargs)
         failure=attachment(True,True)
         failure['receipt']['sendStatus']=0
-        p=FailedReceiptPage('p2',{'job51.job':job51(), 'job51.observe':True,
+        p=FailedReceiptPage('p2',{'job51.job':job51(), 'job51.observe':True,'job51.prepare_apply':True,
                                'job51.attachment':[attachment(),attachment(True),failure]})
         a=Job51Adapter(FakeBrowser({'test':FakeSpace('test',pages=[p])}),SimpleNamespace(greeting_max_length=800))
         a.open_job(Job('51job','172037288','https://jobs.51job.com/all/172037288.html'),'test')
@@ -66,8 +66,8 @@ class AdapterBTests(unittest.TestCase):
         self.assertNotIn('PageTimeout',str(raised.exception))
 
     def test_job51_attachment_diagnostics_are_safe_and_risk_is_preserved(self):
-        from browser.base import BrowserError, RiskControl
-        a,p=setup(Job51Adapter,{'job51.job':job51(),'job51.observe':True},Job('51job','172037288','https://jobs.51job.com/all/172037288.html'))
+        from job_agent.browser.base import BrowserError, RiskControl
+        a,p=setup(Job51Adapter,{'job51.job':job51(),'job51.observe':True,'job51.prepare_apply':True},Job('51job','172037288','https://jobs.51job.com/all/172037288.html'))
         a.send_greeting('全文')
         with patch.object(p,'wait_for',side_effect=BrowserError('private page text')):
             with self.assertRaises(jp.AttachmentUnverified) as raised:a.choose_attachment('示例候选人_简历')
@@ -137,7 +137,7 @@ class AdapterBTests(unittest.TestCase):
         with self.assertRaises(jp.Unverified):jp.applied(transient,'172037288')
 
     def test_job51_attachment_flow_and_receipt(self):
-        p=SequencePage('p2',{'job51.job':job51(), 'job51.observe':True,
+        p=SequencePage('p2',{'job51.job':job51(), 'job51.observe':True,'job51.prepare_apply':True,
                              'job51.attachment':[attachment(),attachment(True),attachment(True,True)]})
         a=Job51Adapter(FakeBrowser({'test':FakeSpace('test',pages=[p])}),SimpleNamespace(greeting_max_length=800))
         a.open_job(Job('51job','172037288','https://jobs.51job.com/shanghai/172037288.html'),'test')
@@ -158,7 +158,7 @@ class AdapterBTests(unittest.TestCase):
             self.assertFalse(any(x[0] in ('click','press','fill') for x in p.actions))
 
     def test_job51_attachment_send_unknown_raises(self):
-        p=SequencePage('p2',{'job51.job':job51(), 'job51.observe':True,
+        p=SequencePage('p2',{'job51.job':job51(), 'job51.observe':True,'job51.prepare_apply':True,
                              'job51.attachment':[attachment(),attachment(True),attachment(True)]})
         a=Job51Adapter(FakeBrowser({'test':FakeSpace('test',pages=[p])}),SimpleNamespace(greeting_max_length=800))
         a.open_job(Job('51job','172037288','https://jobs.51job.com/shanghai/172037288.html'),'test')
@@ -170,7 +170,7 @@ class AdapterBTests(unittest.TestCase):
 
     def test_job51_failed_readback_no_attachment_send(self):
         for data in (None,{},dict(visible=False),attachment(),dict(attachment(True),selectedAttachmentResumeId='wrong')):
-            a,p=setup(Job51Adapter,{'job51.job':job51(),'job51.observe':True,'job51.attachment':data},Job('51job','172037288','https://jobs.51job.com/shanghai/172037288.html'))
+            a,p=setup(Job51Adapter,{'job51.job':job51(),'job51.observe':True,'job51.prepare_apply':True,'job51.attachment':data},Job('51job','172037288','https://jobs.51job.com/shanghai/172037288.html'))
             a.send_greeting('全文')
             with self.assertRaisesRegex(jp.AttachmentUnverified,'已申请、附件未确认'):
                 a.choose_attachment('示例候选人_简历')

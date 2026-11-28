@@ -1,14 +1,14 @@
 import json,os,tempfile,time,unittest
 from pathlib import Path
 from unittest.mock import patch
-from config import Settings
-from store import SQLiteDeliveryStore
-from engine.models import Job,Status,Reason
-from platforms.availability import wait_job_ready,JobUnavailable
+from job_agent.config import Settings
+from job_agent.store import SQLiteDeliveryStore
+from job_agent.engine.models import Job,Status,Reason
+from job_agent.platforms.availability import wait_job_ready,JobUnavailable
 
 class Round4Tests(unittest.TestCase):
     def test_four_closed_fixtures_do_not_wait_for_button(self):
-        from platforms.registry import ADAPTERS
+        from job_agent.platforms.registry import ADAPTERS
         for platform in ('boss','zhilian','liepin','51job'):
             data=json.loads((Path(__file__).parent/'fixtures/platforms'/('job51' if platform=='51job' else platform)/'closed.json').read_text())
             class Page:
@@ -46,7 +46,7 @@ class Round4Tests(unittest.TestCase):
             with self.assertRaises(ValueError):s.requeue_verified_not_applied(jid,evidence)
 
     def test_notification_secret_shared_fallback_and_environment_priority(self):
-        from notify import secret,SendError
+        from job_agent.notify import secret,SendError
         with tempfile.TemporaryDirectory() as tmp,patch.dict(os.environ,{'JOB_AGENT_HOME':tmp},clear=True):
             p=Path(tmp)/'daily.env.json';p.write_text('{"TG_TEST":"from_file"}');p.chmod(0o600)
             self.assertEqual(secret('TG_TEST'),'from_file')
@@ -56,18 +56,18 @@ class Round4Tests(unittest.TestCase):
 
     def test_click_failure_exposes_safe_step(self):
         import subprocess
-        from browser.ego import EgoBrowser
-        from browser.base import BrowserError
+        from job_agent.browser.ego import EgoBrowser
+        from job_agent.browser.base import BrowserError
         for step in ('target_recheck','mouse.down','mouse.up','post_click_observation'):
             response='__JOB_AGENT_RESULT__'+json.dumps({'ok':False,'code':'browser_error','step':step})
-            with patch('browser.ego.subprocess.run',return_value=subprocess.CompletedProcess([],0,response,'')):
+            with patch('job_agent.browser.ego.subprocess.run',return_value=subprocess.CompletedProcess([],0,response,'')):
                 with self.assertRaisesRegex(BrowserError,'click.'+step):
                     EgoBrowser(keepalive_seconds=0)._execute({'op':'page','method':'click'})
 
     def test_zhilian_result_popup_is_observed_without_another_submission(self):
         from unittest.mock import Mock
-        from platforms.zhilian.apply import ZhilianAdapter
-        from platforms.zhilian import pages
+        from job_agent.platforms.zhilian.apply import ZhilianAdapter
+        from job_agent.platforms.zhilian import pages
         a=ZhilianAdapter(Mock(),{})
         a.page=Mock();a.space=Mock();a.job=Job('zhilian','abc','https://www.zhaopin.com/jobdetail/abc.htm')
         a.identity={'platform_job_id':'abc','company':'Company','title':'Role'}
@@ -83,7 +83,7 @@ class Round4Tests(unittest.TestCase):
         a.space.inspect_page.return_value.close.assert_called_once()
 
     def test_daily_preview_keeps_expired_cooldown_policy(self):
-        from service.deliver import preview
+        from job_agent.service.deliver import preview
         with tempfile.TemporaryDirectory() as tmp,SQLiteDeliveryStore(Path(tmp)/'db',dry_run=False) as s:
             cfg=Settings(daily={'enabled':True,'deliver_enabled':True},engine={'platforms':{'boss':{'enabled':True,'greeting':'hi','greeting_max_length':10}}})
             j=Job('boss','abc','https://www.zhipin.com/job_detail/abc.html')

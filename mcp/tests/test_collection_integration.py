@@ -3,9 +3,9 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from config import Settings, load_config
-from platforms.base import SearchQuery
-from platforms.registry import create_sources
+from job_agent.config import Settings, load_config
+from job_agent.platforms.base import SearchQuery
+from job_agent.platforms.registry import create_sources
 import test_collect
 from test_collect import Source
 
@@ -38,10 +38,10 @@ class BudgetIntegrationTest(unittest.TestCase):
 
 class CollectionToolsTest(unittest.TestCase):
     def test_own_routes_and_confirmation(self):
-        import server
-        with patch('server.load_config', return_value=Settings(engine={'backend': 'own'})), \
-                patch('service.collection.check_collection', return_value={'ok': True}) as check, \
-                patch('service.collection.start_collection', return_value={'started': True}) as start:
+        import job_agent.server as server
+        with patch('job_agent.server.load_config', return_value=Settings(engine={'backend': 'own'})), \
+                patch('job_agent.service.collection.check_collection', return_value={'ok': True}) as check, \
+                patch('job_agent.service.collection.start_collection', return_value={'started': True}) as start:
             self.assertTrue(server.check_collection(['boss'])['ok'])
             check.assert_called_once_with(['boss'])
             for value in [False, 1, 'true', None]:
@@ -54,9 +54,9 @@ class CollectionToolsTest(unittest.TestCase):
                 server.check_collection(['boss', 'boss'])
 
     def test_check_without_browser(self):
-        from service.collection import check_collection
+        from job_agent.service.collection import check_collection
         with tempfile.TemporaryDirectory() as home, patch.dict(os.environ, {'JOB_AGENT_HOME': home}), \
-                patch('browser.ego.EgoBrowser', side_effect=AssertionError('browser')):
+                patch('job_agent.browser.ego.EgoBrowser', side_effect=AssertionError('browser')):
             Path(home, 'config.yaml').write_text('collect:\n  platforms:\n    boss:\n      enabled: true\n')
             self.assertEqual(load_config().collect.task_space_name, 'job-agent 采集')
             self.assertEqual(check_collection(['boss'])['platforms'], ['boss'])

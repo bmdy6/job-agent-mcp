@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 from unittest.mock import patch
-from service.original_application import evaluate_application_record, review_resume_record
-from store import Store
+from job_agent.service.original_application import evaluate_application_record, review_resume_record
+from job_agent.store import Store
 
 FIXTURES=Path(__file__).parent/'fixtures/platforms'
 
@@ -75,7 +75,7 @@ class OriginalApplicationTests(unittest.TestCase):
                 db.record_delivery(jid,status='unverified',attachment_name='resume',reason_code='receipt_unknown',kind='attempt')
                 before=db.list_deliveries()
                 pause=db.paused_platforms()
-                with patch('browser.ego.EgoBrowser',side_effect=AssertionError('Offline review cannot access sites')) as access:
+                with patch('job_agent.browser.ego.EgoBrowser',side_effect=AssertionError('Offline review cannot access sites')) as access:
                     r=review_resume_record(jid,data,database=path)
                 access.assert_not_called()
                 self.assertTrue(r['application_record_matched'])
@@ -85,7 +85,7 @@ class OriginalApplicationTests(unittest.TestCase):
                 self.assertEqual(db.connection.execute('SELECT count(*) FROM delivery_queue').fetchone()[0],0)
 
     def test_cli_supplied_record_is_read_only(self):
-        from cli import main
+        from job_agent.cli import main
         from contextlib import redirect_stdout
         import io
         data=fixture('job51')

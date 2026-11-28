@@ -2,9 +2,9 @@
 import json
 import subprocess
 import unittest
-from browser.base import FakePage, FakeSpace, PageTimeout
-from platforms.boss import pages
-from platforms.boss.replies import ReplySource
+from job_agent.browser.base import FakePage, FakeSpace, PageTimeout
+from job_agent.platforms.boss import pages
+from job_agent.platforms.boss.replies import ReplySource
 
 
 class MonitorSourceTests(unittest.TestCase):
@@ -28,7 +28,7 @@ class MonitorSourceTests(unittest.TestCase):
     def test_failure_logs_stage_and_selector_without_message_or_identifiers(self):
         page=self.page([{'encryptJobId': 'PRIVATE_JOB', 'uniqueId': 'PRIVATE_SESSION', 'lastMsgId': '123'}])
         page.wait_for=lambda *a,**k: (_ for _ in ()).throw(PageTimeout('PRIVATE_BODY'))
-        with self.assertLogs('platforms.boss.replies', level='WARNING') as logs:
+        with self.assertLogs('job_agent.platforms.boss.replies', level='WARNING') as logs:
             with self.assertRaises(PageTimeout):ReplySource().fetch(FakeSpace('test', pages=[page]))
         output=' '.join(logs.output)
         self.assertIn('stage=list_ready',output)
@@ -68,13 +68,13 @@ class MonitorPipelineTests(unittest.TestCase):
         import os
         import tempfile
         from unittest.mock import Mock, patch
-        from browser.base import FakeBrowser
-        from config import Settings
-        from monitor import Monitor
-        from store import Store
+        from job_agent.browser.base import FakeBrowser
+        from job_agent.config import Settings
+        from job_agent.monitor import Monitor
+        from job_agent.store import Store
         import time
         with tempfile.TemporaryDirectory() as home, patch.dict(os.environ, JOB_AGENT_HOME=home), \
-                patch('notify.send_one', return_value={'success':True}) as send:
+                patch('job_agent.notify.send_one', return_value={'success':True}) as send:
             with Store() as store:
                 job=store.upsert_job(platform='boss', platform_job_id='job', company='Synthetic', title='Role')
                 store.record_delivery(job,status='sent')

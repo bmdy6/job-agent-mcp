@@ -1,12 +1,12 @@
 import json
 from pathlib import Path
 import unittest
-from browser.base import BrowserError, FakePage, FakeSpace
-from platforms.base import SearchQuery
-from platforms.liepin.search import LiepinJobSource
-from platforms.job51.search import Job51JobSource
-from platforms.liepin import pages as lp
-from platforms.job51 import pages as jp
+from job_agent.browser.base import BrowserError, FakePage, FakeSpace
+from job_agent.platforms.base import SearchQuery
+from job_agent.platforms.liepin.search import LiepinJobSource
+from job_agent.platforms.job51.search import Job51JobSource
+from job_agent.platforms.liepin import pages as lp
+from job_agent.platforms.job51 import pages as jp
 
 ROOT=Path(__file__).parent/'fixtures/platforms'
 
@@ -67,7 +67,7 @@ class SearchBTests(unittest.TestCase):
             jp.parse_search(data, SearchQuery('AI', '苏州'))
 
     def test_registry(self):
-        from platforms.registry import SOURCES,create_sources
+        from job_agent.platforms.registry import SOURCES,create_sources
         self.assertIs(SOURCES['liepin'],LiepinJobSource)
         self.assertIs(SOURCES['51job'],Job51JobSource)
         self.assertEqual(create_sources()['51job'].platform,'51job')
@@ -103,7 +103,7 @@ class SearchBTests(unittest.TestCase):
         p=FakePage('p2',{'collect.job51.search':fixture('job51','list'),'collect.job51.pagination':fixture('job51','page2')})
         # FakePage matches in insertion order; pagination contains the search expression too.
         p.responses={'collect.job51.pagination':fixture('job51','page2'),'collect.job51.search':fixture('job51','list')}
-        with patch('platforms.job51.search.time.sleep') as sleep:
+        with patch('job_agent.platforms.job51.search.time.sleep') as sleep:
             self.assertEqual(len(Job51JobSource().search(FakeSpace('test',pages=[p]),q)),2)
             self.assertGreaterEqual(sleep.call_args.args[0],8)
             self.assertLessEqual(sleep.call_args.args[0],15)

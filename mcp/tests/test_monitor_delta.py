@@ -5,11 +5,11 @@ import time
 import unittest
 from unittest.mock import patch
 
-from browser.base import FakeBrowser, FakeSpace, PageTimeout
-from config import Settings
-from monitor import Monitor
-from platforms.boss.replies import ReplySource
-from store import Store
+from job_agent.browser.base import FakeBrowser, FakeSpace, PageTimeout
+from job_agent.config import Settings
+from job_agent.monitor import Monitor
+from job_agent.platforms.boss.replies import ReplySource
+from job_agent.store import Store
 import test_boss_monitor
 
 
@@ -139,8 +139,8 @@ class OtherPlatformTests(unittest.TestCase):
         self.addCleanup(self.store.close)
 
     def fetch(self, source, page):
-        from monitor.delta import ConversationCursor
-        from monitor.repository import ingest
+        from job_agent.monitor.delta import ConversationCursor
+        from job_agent.monitor.repository import ingest
         cursor = ConversationCursor(self.store, source.platform, 48)
         events = source.fetch(FakeSpace('test', pages=[page]), cursor=cursor, since=cursor.since)
         ingest(self.store, source.platform, events, cursor=cursor)
@@ -148,9 +148,9 @@ class OtherPlatformTests(unittest.TestCase):
         return events, [a for a in page.actions if a[0] in {'click', 'click_projected'}]
 
     def test_zhilian_baseline_unchanged_changed_unread(self):
-        from browser.base import FakePage
-        from platforms.zhilian.replies import ReplySource
-        from platforms.zhilian import pages
+        from job_agent.browser.base import FakePage
+        from job_agent.platforms.zhilian.replies import ReplySource
+        from job_agent.platforms.zhilian import pages
         row = dict(sessionId='session', jobNumber='job', sendTime=time.time()*1000,
                    text='PRIVATE preview', unreadCount=0, lastSentenceType=1, senderType=1)
         def page():
@@ -171,9 +171,9 @@ class OtherPlatformTests(unittest.TestCase):
             pages.conversation_summary(dict(row, unreadCount=None))
 
     def test_liepin_baseline_unchanged_changed_and_unknown_summary(self):
-        from browser.base import FakePage
-        from platforms.liepin.replies import ReplySource
-        from platforms.liepin import pages
+        from job_agent.browser.base import FakePage
+        from job_agent.platforms.liepin.replies import ReplySource
+        from job_agent.platforms.liepin import pages
         row = dict(id='contact', index=0, lastMsgId='m', lastTime=time.time()*1000, unreadCount=0)
         def page():
             return FakePage('p2', {'liepin.guard': {}, 'liepin.contacts': [dict(row)],
@@ -190,9 +190,9 @@ class OtherPlatformTests(unittest.TestCase):
             pages.conversation_summary({'id': 'contact'})
 
     def test_zhilian_stale_messages_do_not_acknowledge_new_summary(self):
-        from browser.base import FakePage
-        from platforms.zhilian.replies import ReplySource
-        from platforms.zhilian import pages
+        from job_agent.browser.base import FakePage
+        from job_agent.platforms.zhilian.replies import ReplySource
+        from job_agent.platforms.zhilian import pages
         row = dict(sessionId='session', jobNumber='job', sendTime=time.time()*1000,
                    text='preview', unreadCount=0)
         def page():
@@ -203,19 +203,19 @@ class OtherPlatformTests(unittest.TestCase):
         self.fetch(ReplySource(), page())
         old = self.store.monitor_conversations('zhilian')
         row['sendTime'] += 1000
-        with patch('platforms.zhilian.replies.time.sleep'), self.assertRaises(pages.PlatformStateError):
+        with patch('job_agent.platforms.zhilian.replies.time.sleep'), self.assertRaises(pages.PlatformStateError):
             self.fetch(ReplySource(), page())
         self.assertEqual(self.store.monitor_conversations('zhilian'), old)
         wrong = page()
         msg = wrong.responses['zhilian.messages']['messages'][0]
         msg['msg']['time'] = row['sendTime']
         msg['session']['jobNumber'] = 'other'
-        with patch('platforms.zhilian.replies.time.sleep'), self.assertRaises(pages.PlatformStateError):
+        with patch('job_agent.platforms.zhilian.replies.time.sleep'), self.assertRaises(pages.PlatformStateError):
             self.fetch(ReplySource(), wrong)
         self.assertEqual(self.store.monitor_conversations('zhilian'), old)
 
     def test_zhilian_projection_uses_stable_identity_and_keeps_message_metadata(self):
-        from platforms.zhilian import pages
+        from job_agent.platforms.zhilian import pages
         run_js = test_boss_monitor.ProjectionTests().run_js
         result = run_js('''global.document={querySelectorAll:()=>[
           {__vue__:{$props:{session:{sessionId:'s',jobNumber:'j',sendTime:1795670400000,
@@ -231,8 +231,8 @@ class OtherPlatformTests(unittest.TestCase):
         self.assertEqual((result['x'],result['y']), (10,20))
 
     def test_job51_status_baseline_unchanged_and_changed(self):
-        from browser.base import FakePage
-        from platforms.job51.replies import ReplySource
+        from job_agent.browser.base import FakePage
+        from job_agent.platforms.job51.replies import ReplySource
         import test_job51_status
         labels = []
         class Page(FakePage):
@@ -253,8 +253,8 @@ class OtherPlatformTests(unittest.TestCase):
         self.assertEqual(self.fetch(ReplySource(), Page('p2')), ([], []))
 
     def test_same_conversation_id_does_not_cross_platform_baselines(self):
-        from monitor.delta import ConversationCursor
-        from platforms.base import ConversationSummary
+        from job_agent.monitor.delta import ConversationCursor
+        from job_agent.platforms.base import ConversationSummary
         summary = ConversationSummary('same', '123', 0)
         first = ConversationCursor(self.store, 'boss', 48)
         self.assertFalse(first.select(summary))
@@ -268,7 +268,7 @@ class OtherPlatformTests(unittest.TestCase):
 class MigrationTests(unittest.TestCase):
     def test_v4_to_v5_preserves_rows_and_reopens_idempotently(self):
         import sqlite3
-        from store.database import MIGRATIONS
+        from job_agent.store.database import MIGRATIONS
         with tempfile.TemporaryDirectory() as home:
             path = home+'/v4.sqlite3'
             with sqlite3.connect(path) as db:
@@ -282,28 +282,28 @@ class MigrationTests(unittest.TestCase):
                 db.execute('PRAGMA user_version=4')
                 db.execute("INSERT INTO jobs(platform,platform_job_id,collected_at) VALUES('boss','old','before')")
             for _ in range(2):
-                with Store(path) as store:
-                    self.assertEqual(store.schema_version, 6)
+                with Store(path, migrate=True) as store:
+                    self.assertEqual(store.schema_version, 7)
                     self.assertEqual(store.get_job(1)['platform_job_id'], 'old')
-                    self.assertEqual([r[0] for r in store.connection.execute('SELECT version FROM schema_migrations')], [1,2,3,4,5,6])
+                    self.assertEqual([r[0] for r in store.connection.execute('SELECT version FROM schema_migrations')], [1,2,3,4,5,6,7])
                     self.assertEqual(store.monitor_conversations('boss'), {})
 
     def test_failed_v5_migration_rolls_back_schema_and_ledger(self):
         import sqlite3
-        from store import database
+        from job_agent.store import database
         with tempfile.TemporaryDirectory() as home:
             path = home+'/v4.sqlite3'
-            with Store(path):
+            with Store(path, migrate=True):
                 pass
             with sqlite3.connect(path) as db:
                 db.execute('DROP TABLE monitor_baselines')
                 db.execute('DROP TABLE monitor_conversations')
                 db.execute('DELETE FROM schema_migrations WHERE version=5')
                 db.execute('PRAGMA user_version=4')
-            bad = [*database.MIGRATIONS[:-1], (5, [*database.MIGRATIONS[-1][1], 'INVALID SQL'])]
+            bad = [(v, [*sql, 'INVALID SQL'] if v==5 else sql) for v,sql in database.MIGRATIONS]
             with patch.object(database, 'MIGRATIONS', bad), self.assertRaises(sqlite3.OperationalError):
-                Store(path)
+                Store(path, migrate=True)
             with sqlite3.connect(path) as db:
                 self.assertEqual(db.execute('PRAGMA user_version').fetchone()[0], 4)
                 self.assertEqual(db.execute('SELECT count(*) FROM schema_migrations WHERE version=5').fetchone()[0], 0)
-                self.assertEqual(db.execute("SELECT count(*) FROM sqlite_master WHERE name LIKE 'monitor_%'").fetchone()[0], 0)
+                self.assertEqual(db.execute("SELECT count(*) FROM sqlite_master WHERE name IN ('monitor_baselines','monitor_conversations')").fetchone()[0], 0)

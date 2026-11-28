@@ -3,13 +3,13 @@ import tempfile
 import unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from engine.config import EngineSettings
-from engine.models import Job, Status, Reason
-from engine.queue import DeliveryEngine
-from store import SQLiteDeliveryStore
-from engine.adapters import FakeAdapter, BossAdapter
-from engine.preflight import FakePreflight
-from engine.spaces import FakeTaskSpaces
+from job_agent.config.engine import EngineSettings
+from job_agent.engine.models import Job, Status, Reason
+from job_agent.engine.queue import DeliveryEngine
+from job_agent.store import SQLiteDeliveryStore
+from job_agent.engine.adapters import FakeAdapter, BossAdapter
+from job_agent.engine.preflight import FakePreflight
+from job_agent.engine.spaces import FakeTaskSpaces
 
 class EngineTest(unittest.TestCase):
     def setUp(self):
@@ -18,7 +18,8 @@ class EngineTest(unittest.TestCase):
         self.path = Path(self.temp.name) / 'queue.sqlite3'
         self.store = SQLiteDeliveryStore(self.path)
         self.addCleanup(self.store.close)
-        self.cfg = EngineSettings(platforms={'boss': dict(enabled=True, greeting='您好', greeting_max_length=10, daily_limit=10, interval_seconds=0, attachment_name='resume')})
+        # Most tests here pin the strict legacy policy; SkipUnverifiedTest covers the default.
+        self.cfg = EngineSettings(stop_on_unverified=True, platforms={'boss': dict(enabled=True, greeting='您好', greeting_max_length=10, daily_limit=10, interval_seconds=0, attachment_name='resume')})
         self.adapter = FakeAdapter()
         self.preflight = FakePreflight()
         self.spaces = FakeTaskSpaces()
@@ -42,7 +43,7 @@ class EngineTest(unittest.TestCase):
         self.assertTrue(all(d['greeting']=='您好' and d['attachment_name']=='resume' for d in self.store.list_deliveries()))
 
     def test_driver_handover_stops_remaining_queue(self):
-        from browser.base import SpaceUnavailable
+        from job_agent.browser.base import SpaceUnavailable
         from unittest.mock import patch
         self.engine.enqueue(self.jobs())
         with patch.object(self.spaces, 'ensure', side_effect=SpaceUnavailable('user control')):
@@ -73,7 +74,7 @@ class EngineTest(unittest.TestCase):
         self.assertEqual(self.store.records()[1].status, Status.PENDING)
 
     def test_positive_application_without_greeting_stays_no_retry(self):
-        cfg=EngineSettings(platforms={'zhilian':dict(enabled=True,greeting='您好',greeting_max_length=10,
+        cfg=EngineSettings(stop_on_unverified=True,platforms={'zhilian':dict(enabled=True,greeting='您好',greeting_max_length=10,
             daily_limit=10,interval_seconds=0)})
         adapter=FakeAdapter(receipt=False)
         adapter.application_receipt_at='2026-11-25T12:00:00+08:00'
@@ -159,7 +160,7 @@ class EngineTest(unittest.TestCase):
 
     def test_refusal_before_any_click_is_skipped_and_batch_continues(self):
         from unittest.mock import patch
-        from platforms.boss.pages import NotStarted
+        from job_agent.platforms.boss.pages import NotStarted
         self.engine.enqueue(self.jobs())
         with patch.object(self.adapter, 'send_greeting', side_effect=[NotStarted('目标公司和岗位不可读；不开始沟通'), None]):
             self.engine.run()
@@ -180,10 +181,9 @@ class EngineTest(unittest.TestCase):
         from unittest.mock import patch
         self.engine.enqueue(self.jobs())
         with patch.object(self.adapter, 'close', side_effect=RuntimeError):
-            with self.assertRaises(RuntimeError):
-                self.engine.run()
+            self.engine.run()
         self.assertEqual(self.store.records()[0].status, Status.SENT)
-        self.assertEqual(self.store.records()[1].status, Status.PENDING)
+        self.assertEqual(self.store.records()[1].status, Status.FAILED)
 
     def test_other_platform_continues_and_same_id_is_distinct(self):
         self.cfg.platforms['zhilian'] = self.cfg.platforms['boss'].model_copy()
@@ -248,13 +248,13 @@ class EngineTest(unittest.TestCase):
         script = '''
 import os, sys
 from unittest.mock import patch
-from engine.config import EngineSettings
-from engine.models import Job
-from store import SQLiteDeliveryStore
-from engine.queue import DeliveryEngine
-from engine.adapters import FakeAdapter
-from engine.preflight import FakePreflight
-from engine.spaces import FakeTaskSpaces
+from job_agent.config.engine import EngineSettings
+from job_agent.engine.models import Job
+from job_agent.store import SQLiteDeliveryStore
+from job_agent.engine.queue import DeliveryEngine
+from job_agent.engine.adapters import FakeAdapter
+from job_agent.engine.preflight import FakePreflight
+from job_agent.engine.spaces import FakeTaskSpaces
 store = SQLiteDeliveryStore(sys.argv[1])
 cfg = EngineSettings(platforms={'boss': dict(enabled=True, greeting='你好', greeting_max_length=10, daily_limit=10, interval_seconds=0)})
 adapter = FakeAdapter()
@@ -275,7 +275,7 @@ with patch.object(adapter, 'send_greeting', side_effect=lambda _: os._exit(23)):
 
     def test_example_config_loads_and_limits_not_guessed(self):
         import yaml
-        from config import Settings
+        from job_agent.config import Settings
         example = Path(__file__).resolve().parents[2] / 'config.example.yaml'
         cfg = Settings.model_validate(yaml.safe_load(example.read_text()))
         self.assertTrue(cfg.engine.dry_run)
@@ -297,6 +297,18 @@ with patch.object(adapter, 'send_greeting', side_effect=lambda _: os._exit(23)):
         self.assertEqual(self.adapter.calls.count('open_job'), 1)
         self.assertNotIn('send_greeting', self.adapter.calls)
 
+    def test_default_policy_skips_unknown_job_and_continues(self):
+        from unittest.mock import patch
+        self.cfg.stop_on_unverified = False
+        self.engine = self.make_engine()
+        self.engine.enqueue(self.jobs())
+        with patch.object(self.adapter, 'check_applied', side_effect=[TimeoutError] + [False] * 10):
+            self.engine.run()
+        records = self.store.records()
+        self.assertEqual(records[0].status, Status.UNVERIFIED)
+        self.assertEqual(records[1].status, Status.SENT)
+        self.assertEqual(self.adapter.calls.count('open_job'), len(records))
+
     def test_full_greeting_above_legacy_300_limit(self):
         self.cfg.platforms['boss'].greeting_max_length = 500
         self.cfg.platforms['boss'].greeting = '您' * 500
@@ -308,7 +320,7 @@ with patch.object(adapter, 'send_greeting', side_effect=lambda _: os._exit(23)):
             EngineSettings(platforms={'boss': dict(greeting='您' * 501, greeting_max_length=500)})
 
     def test_all_platform_stubs_are_unimplemented(self):
-        from engine.adapters import BossAdapter, ZhilianAdapter, LiepinAdapter, Job51Adapter
+        from job_agent.engine.adapters import BossAdapter, ZhilianAdapter, LiepinAdapter, Job51Adapter
         for cls in (BossAdapter, ZhilianAdapter, LiepinAdapter, Job51Adapter):
             for method, args in [('open_job', (self.jobs(1)[0], 'space')), ('check_applied', ()),
                                  ('send_greeting', ('您好',)), ('choose_attachment', ('resume',)),
@@ -316,3 +328,57 @@ with patch.object(adapter, 'send_greeting', side_effect=lambda _: os._exit(23)):
                 with self.subTest(adapter=cls.__name__, method=method):
                     with self.assertRaisesRegex(NotImplementedError, 'P0'):
                         getattr(cls(), method)(*args)
+
+class QueueDeadlineTests(unittest.TestCase):
+    setUp = EngineTest.setUp
+    make_engine = EngineTest.make_engine
+    jobs = EngineTest.jobs
+
+    def test_nearest_deadline_and_stop_segments(self):
+        self.cfg.platforms['boss'].interval_seconds = 5
+        self.cfg.platforms['zhilian'] = self.cfg.platforms['boss'].model_copy(update={'interval_seconds': 3})
+        self.engine.adapters['zhilian'] = FakeAdapter()
+        self.engine.enqueue(self.jobs(2) + [Job('zhilian',str(i),'https://example.invalid/z'+str(i)) for i in range(2)])
+        delays=[]
+        def sleep(delay):
+            delays.append(delay)
+            self.now += delay
+        self.engine.sleep=sleep
+        self.engine.run()
+        self.assertEqual(delays, [2, 1, 2])
+        self.assertTrue(all(r.status == Status.SENT for r in self.store.records()))
+
+    def test_cleanup_failure_isolates_platform_and_completes_batch(self):
+        from unittest.mock import patch
+        from job_agent.config import Settings
+        from job_agent.service.deliver import confirm
+        self.cfg.platforms['zhilian'] = self.cfg.platforms['boss'].model_copy()
+        jobs = self.jobs(2)+[Job('zhilian','z','https://example.invalid/z')]
+        token=self.store.create_batch(jobs, {'boss':'您好','zhilian':'您好'}, 'resume', self.cfg.model_dump())
+        def adapters():
+            adapter=FakeAdapter()
+            adapter.close=lambda: (_ for _ in ()).throw(RuntimeError('close failed'))
+            return adapter
+        # Both platforms lose cleanup: each first receipt stays sent, remaining jobs fail before effects.
+        with patch('job_agent.service.deliver.FakeAdapter', side_effect=adapters):
+            confirm(self.store,Settings(engine=self.cfg),token)
+        rows=self.store.records()
+        self.assertEqual(sum(r.status == Status.SENT for r in rows),2)
+        self.assertEqual(sum(r.status == Status.FAILED for r in rows),1)
+        self.assertEqual(self.store.get_batch(token)['status'],'executed')
+
+    def test_cleanup_failure_does_not_touch_other_batch_and_healthy_platform(self):
+        from unittest.mock import patch
+        self.cfg.platforms['zhilian'] = self.cfg.platforms['boss'].model_copy()
+        other = FakeAdapter()
+        self.engine.adapters['zhilian'] = other
+        jobs = self.jobs(2)+[Job('zhilian','z','https://example.invalid/z')]
+        token=self.store.create_batch(jobs, {'boss':'您好','zhilian':'您好'}, 'resume', self.cfg.model_dump())
+        self.store.confirm_batch(token, config=self.cfg.model_dump())
+        outside=Job('boss','outside','https://example.invalid/outside')
+        self.engine.enqueue([outside])
+        with patch.object(self.adapter,'close',side_effect=RuntimeError):
+            self.engine.run(batch_token=token)
+        self.assertEqual(next(r.status for r in self.store.records() if r.job == outside), Status.PENDING)
+        self.assertEqual(other.calls.count('send_greeting'),1)
+        self.store.complete_batch(token)

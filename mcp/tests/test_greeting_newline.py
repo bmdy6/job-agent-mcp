@@ -4,8 +4,8 @@ import subprocess
 import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
-from browser.ego import EgoBrowser, _SCRIPT
-from browser.input_config import InputSettings
+from job_agent.browser.ego import EgoBrowser, _SCRIPT
+from job_agent.config.input import InputSettings
 from test_ego_browser import result
 import test_adapters_boss_zhilian as boss_tests
 import test_adapters_b as other_tests
@@ -53,8 +53,8 @@ globalThis.taskSpace=async()=>({ownership:'agent',tabs:async()=>[{label:'p2',ope
             self.assertEqual(actions,[])
 
     def test_python_fill_passes_explicit_rule_and_rejects_default(self):
-        from browser.base import BrowserError
-        with patch('browser.ego.subprocess.run') as run:
+        from job_agent.browser.base import BrowserError
+        with patch('job_agent.browser.ego.subprocess.run') as run:
             run.return_value=result({'space_id':1,'anchor':'p1'})
             browser=EgoBrowser(keepalive_seconds=0)
             space=browser.space('test')
@@ -73,15 +73,15 @@ class GreetingContractTests(unittest.TestCase):
     def test_preview_engine_and_stored_history_use_identical_effective_text(self):
         import tempfile
         from pathlib import Path
-        from config import Settings
-        from engine.models import Job
-        from engine.adapters import FakeAdapter
-        from engine.preflight import FakePreflight
-        from engine.spaces import FakeTaskSpaces
-        from engine.queue import DeliveryEngine
-        from service.deliver import preview
-        from store import SQLiteDeliveryStore
-        from platforms.greeting import greeting_version
+        from job_agent.config import Settings
+        from job_agent.engine.models import Job
+        from job_agent.engine.adapters import FakeAdapter
+        from job_agent.engine.preflight import FakePreflight
+        from job_agent.engine.spaces import FakeTaskSpaces
+        from job_agent.engine.queue import DeliveryEngine
+        from job_agent.service.deliver import preview
+        from job_agent.store import SQLiteDeliveryStore
+        from job_agent.platforms.greeting import greeting_version
         for platform,expected in [('boss','甲\n乙'),('liepin','甲；乙')]:
             with self.subTest(platform=platform), tempfile.TemporaryDirectory() as temp:
                 cfg=Settings(engine={'platforms':{platform:dict(enabled=True,greeting='甲\n乙',greeting_max_length=10)}})
@@ -102,7 +102,7 @@ class GreetingContractTests(unittest.TestCase):
                     self.assertTrue(all(r['greeting']==expected for r in store.list_deliveries()))
 
     def test_platform_transform_and_content_version(self):
-        from platforms.greeting import prepare_greeting, greeting_version
+        from job_agent.platforms.greeting import prepare_greeting, greeting_version
         text='甲\r\n乙\r丙\u2028丁\u2029戊'
         self.assertEqual(prepare_greeting('boss',text),'甲\n乙\n丙\n丁\n戊')
         for p in ('liepin','zhilian','51job'):
@@ -110,7 +110,7 @@ class GreetingContractTests(unittest.TestCase):
             self.assertEqual(prepare_greeting(p,text,' '),'甲 乙 丙 丁 戊')
         self.assertEqual(greeting_version('甲\n乙'),greeting_version('甲\n乙'))
         self.assertNotEqual(greeting_version('甲\n乙'),greeting_version('甲乙'))
-        from engine.config import PlatformSettings
+        from job_agent.config.engine import PlatformSettings
         with self.assertRaises(ValueError):PlatformSettings(greeting_newline_separator='\n')
 
     def test_boss_chat_and_modal_keep_full_newline_and_block_bad_readback(self):

@@ -8,16 +8,16 @@ from pathlib import Path
 from unittest.mock import patch
 from zoneinfo import ZoneInfo
 
-from browser.base import FakePage, FakeSpace
-from platforms.job51 import status
-from store import Store
+from job_agent.browser.base import FakePage, FakeSpace
+from job_agent.platforms.job51 import status
+from job_agent.store import Store
 from test_job51_status import snapshot
 
 
 class ReconcileTests(unittest.TestCase):
     def test_summary_distinguishes_attachment_from_greeting(self):
-        from service.deliver import summary
-        from engine.models import Job, Record, Status
+        from job_agent.service.deliver import summary
+        from job_agent.engine.models import Job, Record, Status
         text = summary([Record(Job('51job', '900001', 'https://example.com'), Status.SENT)], dry_run=False)
         self.assertIn('指定附件回执已确认', text)
         self.assertIn('未发送招呼语', text)
@@ -60,7 +60,7 @@ class ReconcileTests(unittest.TestCase):
         self.assertTrue(page.closed)
 
     def test_reconciliation_does_not_treat_a_collected_job_as_application(self):
-        from service.job51_reconcile import reconcile
+        from job_agent.service.job51_reconcile import reconcile
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp)/'jobs.sqlite3'
             with Store(path) as store:
@@ -78,7 +78,7 @@ class ReconcileTests(unittest.TestCase):
             self.assertNotIn('company', report['items'][0])
 
     def test_distinct_attachment_attempt_legacy_and_unknown_evidence(self):
-        from service.job51_reconcile import reconcile
+        from job_agent.service.job51_reconcile import reconcile
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp)/'jobs.sqlite3'
             with Store(path) as store:
@@ -100,7 +100,7 @@ class ReconcileTests(unittest.TestCase):
             self.assertEqual(reconcile([row], database=path)['items'][0]['category'], 'legacy_record_only')
 
     def test_missing_job_and_simulated_or_missing_db(self):
-        from service.job51_reconcile import reconcile
+        from job_agent.service.job51_reconcile import reconcile
         with tempfile.TemporaryDirectory() as tmp:
             path = Path(tmp)/'jobs.sqlite3'
             with self.assertRaises(sqlite3.OperationalError):
@@ -118,8 +118,8 @@ class ReconcileTests(unittest.TestCase):
                 reconcile([], database=path)
 
     def test_cli_is_readonly_and_reports_only_safe_fields(self):
-        import cli
-        with patch('service.job51_reconcile.run', return_value={'read_only': True}) as run:
+        import job_agent.cli as cli
+        with patch('job_agent.service.job51_reconcile.run', return_value={'read_only': True}) as run:
             self.assertEqual(cli.main(['reconcile-51job', '--database', '/fake/jobs.sqlite3']), 0)
             run.assert_called_once_with(database='/fake/jobs.sqlite3')
 

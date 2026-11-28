@@ -5,7 +5,7 @@ from pathlib import Path
 import subprocess
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'mcp'))
-from browser.platform_lock import platform_lock, PlatformBusy
+from job_agent.browser.platform_lock import platform_lock, PlatformBusy
 
 
 def main():

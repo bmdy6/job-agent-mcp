@@ -1,0 +1,8 @@
+# Copy to $JOB_AGENT_HOME/qa.yaml and replace every value with your own answers.
+# This example contains no candidate information; it is never loaded automatically.
+期望薪资: 请填写你期望的薪资范围，以及是否愿意沟通。
+离职原因: 请填写真实、适合招聘沟通的原因。
+到岗时间: 请填写目前可以确认的到岗时间。
+现居城市: 请填写愿意向招聘方提供的城市信息。
+是否接受外包: 请填写是否接受，以及需要说明的条件。
+能否加班: 请填写可以接受的安排和边界。

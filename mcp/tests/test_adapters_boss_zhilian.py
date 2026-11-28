@@ -1,14 +1,14 @@
 import json
 from pathlib import Path
 import unittest
-from browser.base import FakeBrowser, FakePage, FakeSpace
-from engine.models import Job
-from platforms.boss import pages as boss
-from platforms.boss.apply import BossAdapter
-from platforms.boss.replies import BossReplySource
-from platforms.zhilian import pages as zhilian
-from platforms.zhilian.apply import ZhilianAdapter
-from platforms.zhilian.replies import ZhilianReplySource
+from job_agent.browser.base import FakeBrowser, FakePage, FakeSpace
+from job_agent.engine.models import Job
+from job_agent.platforms.boss import pages as boss
+from job_agent.platforms.boss.apply import BossAdapter
+from job_agent.platforms.boss.replies import BossReplySource
+from job_agent.platforms.zhilian import pages as zhilian
+from job_agent.platforms.zhilian.apply import ZhilianAdapter
+from job_agent.platforms.zhilian.replies import ZhilianReplySource
 
 
 def fixture(p,n):
@@ -55,16 +55,16 @@ class Adapters(unittest.TestCase):
             self.assertFalse(any(x[0] in ('fill','press') for x in p.actions))
 
     def test_boss_redirect_timeout_never_types(self):
-        from browser.base import PageTimeout
+        from job_agent.browser.base import PageTimeout
         from unittest.mock import patch
         a,p=self.make(self.cases[0])
         p.click=lambda selector:FakePage.click(p,selector)
-        with patch('platforms.boss.apply.monotonic',side_effect=[0,11]),self.assertRaisesRegex(PageTimeout,'boss.chat_navigation'):
+        with patch('job_agent.platforms.boss.apply.monotonic',side_effect=[0,11]),self.assertRaisesRegex(PageTimeout,'boss.chat_navigation'):
             a.send_greeting('全文')
         self.assertFalse(any(x[0] in ('fill','press') for x in p.actions))
 
     def test_zhilian_modal_timeout_never_replays_application_or_continues_chat(self):
-        from browser.base import PageTimeout
+        from job_agent.browser.base import PageTimeout
         a,p=self.make(self.cases[1])
         wait=p.wait_for
         def timeout(selector,**kwargs):
@@ -76,7 +76,7 @@ class Adapters(unittest.TestCase):
         self.assertFalse(any(x[0] in ('fill','press') for x in p.actions))
 
     def test_first_click_timeout_stops_without_other_action(self):
-        from browser.base import PageTimeout
+        from job_agent.browser.base import PageTimeout
         for c in self.cases:
             a,p=self.make(c)
             def fail(selector):
@@ -191,7 +191,7 @@ class Adapters(unittest.TestCase):
             self.assertEqual([x for x in p.actions if x[0]=='click'],[('click',boss.START)])
 
     def test_boss_editable_submit_timeout_does_not_repeat(self):
-        from browser.base import PageTimeout
+        from job_agent.browser.base import PageTimeout
         for confirmed in (False,True):
             a,p,state=self.editable()
             receipt=self.modal_receipt_page(a,confirmed=confirmed)
@@ -222,7 +222,7 @@ class Adapters(unittest.TestCase):
             else:
                 click(selector)
         p.click=remains_on_job
-        with patch('platforms.boss.apply.monotonic',side_effect=[0,0,11]):
+        with patch('job_agent.platforms.boss.apply.monotonic',side_effect=[0,0,11]):
             a.send_greeting('全文')
         self.assertTrue(a.confirm_receipt())
         self.assertEqual(p.url(),self.cases[0][4])
@@ -232,7 +232,7 @@ class Adapters(unittest.TestCase):
         self.assertFalse(any(x[0] in ('click','fill','press') for x in receipt.actions))
 
     def test_boss_editable_no_navigation_risk_is_not_hidden_by_receipt_check(self):
-        from browser.base import PageTimeout
+        from job_agent.browser.base import PageTimeout
         a,p,state=self.editable()
         click=p.click
         def blocked(selector):
@@ -340,11 +340,11 @@ class Adapters(unittest.TestCase):
         from unittest.mock import patch
         a,p=self.make(self.cases[1])
         a.send_greeting('全文')
-        with patch('platforms.zhilian.receipt_reader.read_application',return_value=None),patch('platforms.zhilian.receipt_reader.read_greeting') as greeting:
+        with patch('job_agent.platforms.zhilian.receipt_reader.read_application',return_value=None),patch('job_agent.platforms.zhilian.receipt_reader.read_greeting') as greeting:
             self.assertFalse(a.confirm_receipt())
             greeting.assert_not_called()
         stamp='2026-11-25T12:23:39+08:00'
-        with patch('platforms.zhilian.receipt_reader.read_application',return_value=stamp),patch('platforms.zhilian.receipt_reader.read_greeting',return_value=False) as greeting:
+        with patch('job_agent.platforms.zhilian.receipt_reader.read_application',return_value=stamp),patch('job_agent.platforms.zhilian.receipt_reader.read_greeting',return_value=False) as greeting:
             self.assertFalse(a.confirm_receipt())
             self.assertEqual(a.application_receipt_at,stamp)
             greeting.return_value=True
@@ -409,12 +409,12 @@ class Adapters(unittest.TestCase):
         self.assertFalse(zhilian.receipt(d,'[脱敏消息]',jid,set()))
 
     def test_boss_unavailable_latest_bubble_is_not_fabricated(self):
-        from browser.base import PageTimeout
+        from job_agent.browser.base import PageTimeout
         class MissingBubble(FakePage):
             def wait_for(self,selector,**kw):
                 if 'data-mid' in selector:raise PageTimeout('missing')
                 super().wait_for(selector,**kw)
         p=MissingBubble('owned',{'boss.select_session':True,'boss.state':{},'boss.list':{'rows':[{'encryptJobId':'j','uniqueId':'s','lastMsgId':'123'}]}})
-        with self.assertLogs('platforms.boss.replies',level='WARNING'):
+        with self.assertLogs('job_agent.platforms.boss.replies',level='WARNING'):
             self.assertEqual(BossReplySource().fetch(FakeSpace('t',pages=[p])),[])
         self.assertTrue(p.closed)

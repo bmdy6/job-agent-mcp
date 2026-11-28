@@ -5,9 +5,9 @@ import sys
 import tempfile
 import unittest
 from pathlib import Path
-from store import Store, SQLiteDeliveryStore
-from store.database import MIGRATIONS
-from engine.models import Job, Status, Reason
+from job_agent.store import Store, SQLiteDeliveryStore
+from job_agent.store.database import MIGRATIONS
+from job_agent.engine.models import Job, Status, Reason
 
 
 class StoreV2Test(unittest.TestCase):
@@ -17,6 +17,7 @@ class StoreV2Test(unittest.TestCase):
         self.path = Path(self.temp.name) / 'jobs.db'
 
     def open(self, **kwargs):
+        kwargs.setdefault('migrate', True)
         db = SQLiteDeliveryStore(self.path, **kwargs)
         self.addCleanup(db.close)
         return db
@@ -39,12 +40,12 @@ class StoreV2Test(unittest.TestCase):
         with self.assertRaises(ValueError): self.open()
         self.assertEqual(before, hashlib.sha256(self.path.read_bytes()).digest())
         db = self.open(dry_run=False)
-        self.assertEqual(db.schema_version, 6)
+        self.assertEqual(db.schema_version, 7)
         self.assertEqual(len(db.list_deliveries()), 2)
         self.assertEqual(db.records()[0].status, Status.SENT)
         self.assertIsNotNone(db.records()[0].attempted_at)
         db.close()
-        with Store(self.path) as reopened:
+        with Store(self.path, migrate=True) as reopened:
             self.assertEqual(len(reopened.list_deliveries()),2)
 
     def test_audit_is_append_only_and_atomic_with_queue(self):
@@ -100,7 +101,7 @@ class StoreV2Test(unittest.TestCase):
     def test_cross_process_lock(self):
         db = self.open()
         script = '''import sys
-from store import SQLiteDeliveryStore
+from job_agent.store import SQLiteDeliveryStore
 with SQLiteDeliveryStore(sys.argv[1]) as db:
     try:
         with db.exclusive(): pass
@@ -160,7 +161,7 @@ with SQLiteDeliveryStore(sys.argv[1]) as db:
 class RebindUnattemptedTest(unittest.TestCase):
     def test_pending_unattempted_job_can_move_to_new_batch(self):
         import tempfile, os
-        from store import SQLiteDeliveryStore
+        from job_agent.store import SQLiteDeliveryStore
         with tempfile.TemporaryDirectory() as d:
             path=os.path.join(d,'jobs.sqlite3')
             with SQLiteDeliveryStore(path, dry_run=False) as store:

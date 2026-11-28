@@ -1,5 +1,5 @@
 import unittest
-from browser.ego import as_expression
+from job_agent.browser.ego import as_expression
 
 
 class AsExpressionTest(unittest.TestCase):

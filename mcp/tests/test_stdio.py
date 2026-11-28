@@ -1,3 +1,4 @@
+from state_helpers import read_state_file, write_state_file
 """Real MCP stdio acceptance uses one temporary owned database, without network."""
 import json
 import os
@@ -8,7 +9,7 @@ import unittest
 
 from mcp import ClientSession, StdioServerParameters
 from mcp.client.stdio import stdio_client
-from store import Store
+from job_agent.store import Store
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -24,29 +25,45 @@ class StdioTest(unittest.IsolatedAsyncioTestCase):
                     city='杭州', salary='10-20K', jd='任职要求：\n熟悉 SQL。', legacy_status='approved', legacy_score=90,
                     url='https://example.invalid/job', collected_at='2026-11-26T00:00:00Z'))
                 db.upsert_job(platform='liepin', platform_job_id='other', city='上海', title='其他岗位')
-            parameters = StdioServerParameters(command=sys.executable, args=[str(ROOT/'server.py')],
+            parameters = StdioServerParameters(command=sys.executable, args=["-m", "job_agent.server"],
                 env={**os.environ, 'JOB_AGENT_HOME': home, 'JOB_AGENT_CALLER': 'unit-stdio'})
             calls = 0
             async with stdio_client(parameters) as (reader, writer):
                 async with ClientSession(reader, writer) as client:
                     await client.initialize()
                     tools = {tool.name: tool for tool in (await client.list_tools()).tools}
-                    self.assertEqual(set(tools), {'dashboard', 'status', 'resume_delivery_status', 'review_resume_application_record',
+                    self.assertEqual(set(tools), {'command', 'get_settings', 'update_settings', 'dashboard', 'status', 'resume_delivery_status', 'review_resume_application_record',
                         'search_jobs', 'get_job', 'check_collection', 'start_collection', 'preview_scoring', 'start_scoring',
                         'scoring_runs', 'jd_requirements', 'profile', 'experience_list', 'experience_get', 'experience_add',
                         'company_get', 'company_save', 'log_event', 'company_history', 'funnel', 'setup_check',
                         'resume_import', 'briefing', 'funnel_stats', 'greeting_targets', 'preview_greetings', 'send_greetings',
                         'delivery_status', 'stop_delivery', 'start_reply_monitor', 'stop_reply_monitor',
-                        'reply_monitor_status', 'notify_test', 'greeting_stats', 'interview_schedule'})
-                    for name in ['search_jobs', 'funnel_stats', 'greeting_stats', 'interview_schedule']:
+                        'reply_monitor_status', 'notify_test', 'greeting_stats', 'interview_schedule', 'sync_default_greeting'})
+                    for name in ['get_settings', 'search_jobs', 'funnel_stats', 'greeting_stats', 'interview_schedule']:
                         self.assertTrue(tools[name].annotations.readOnlyHint)
                     self.assertFalse(tools['send_greetings'].annotations.readOnlyHint)
+                    self.assertFalse(tools['update_settings'].annotations.readOnlyHint)
                     async def call(name, args=None, error=False):
                         nonlocal calls
                         result = await client.call_tool(name, args or {})
                         calls += 1
                         self.assertEqual(bool(result.isError), error, result.content)
                         return result.structuredContent
+                    self.assertFalse(tools['command'].annotations.readOnlyHint)
+                    self.assertEqual((await call('command', {'action': 'status'}))['command'], 'status')
+                    self.assertEqual((await call('command', {'action': 'pause'}))['mode'], 'paused')
+                    self.assertEqual((await call('command', {'action': 'resume'}))['mode'], 'running')
+                    await call('command', {'action': 'shell'}, error=True)
+                    settings = await call('get_settings', {'section': 'analytics'})
+                    self.assertEqual(settings['settings']['activity_days'], 7)
+                    self.assertIn('today', settings)
+                    self.assertFalse((await call('update_settings', {'changes': {'analytics.activity_days': 14}}))['applied'])
+                    self.assertTrue((await call('update_settings', {'changes': {'analytics.activity_days': 14}, 'confirm': True, 'actor': 'stdio-test', 'reason': 'contract verification'}))['applied'])
+                    audit = [json.loads(line) for line in (path/'config-history/changes.jsonl').read_text().splitlines()]
+                    self.assertEqual((audit[0]['actor'], audit[0]['source'], audit[0]['reason']),
+                                     ('stdio-test', 'mcp', 'contract verification'))
+                    await call('update_settings', {'changes': {'scoring.api_key_env': 'PRIVATE-SECRET'}}, error=True)
+                    await call('update_settings', {'changes': {'mode': 'job'}, 'confirm': 'true'}, error=True)
                     result = await call('search_jobs', {'query':'Agent','cities':['杭州'], 'platforms':['boss'],
                         'salary_min':15,'salary_max':25,'min_score':80,'statuses':['approved']})
                     self.assertEqual(result['total'], 1)
@@ -77,10 +94,24 @@ class StdioTest(unittest.IsolatedAsyncioTestCase):
                     self.assertFalse((await call('check_collection', {'platforms':['boss']}))['ok'])
                     for name in ['greeting_stats','interview_schedule','greeting_targets']:
                         self.assertIsInstance(await call(name), dict)
-            raw = (path/'activity.jsonl').read_text()
+            raw = read_state_file(path/'activity.jsonl')
             self.assertNotIn('PRIVATE', raw)
             self.assertNotIn('example.invalid', raw)
             entries = [json.loads(line) for line in raw.splitlines()]
             self.assertEqual(len(entries), calls)
             self.assertTrue(all(e['caller']=='unit-stdio' for e in entries))
             self.assertFalse((path/'applications.jsonl').exists())
+
+
+class LegacyEntryTest(unittest.IsolatedAsyncioTestCase):
+    async def test_legacy_server_path_still_serves_tools(self):
+        with tempfile.TemporaryDirectory() as home:
+            parameters = StdioServerParameters(command=sys.executable, args=[str(ROOT/'server.py')],
+                env={**os.environ, 'JOB_AGENT_HOME': home, 'JOB_AGENT_CALLER': 'unit-legacy'})
+            async with stdio_client(parameters) as (reader, writer):
+                async with ClientSession(reader, writer) as client:
+                    await client.initialize()
+                    names = {tool.name for tool in (await client.list_tools()).tools}
+                    self.assertIn('briefing', names)
+                    self.assertIn('status', names)
+

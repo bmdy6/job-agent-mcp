@@ -8,8 +8,8 @@ from pathlib import Path
 from unittest.mock import patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from config import Settings, load_config
-import notify
+from job_agent.config import Settings, load_config
+import job_agent.notify as notify
 
 
 def settings(**channels):
@@ -63,13 +63,13 @@ class NotifyTest(unittest.TestCase):
         self.assertIn('https://example.invalid', calls[1].args[1]['desp'])
         self.assertEqual(calls[2].args[1], {'title': '标题', 'text': '正文', 'url': 'https://example.invalid'})
 
-    def test_two_retries_and_other_channel_continues_no_secrets_in_logs(self):
+    def test_permanent_failure_and_other_channel_continues_no_secrets_in_logs(self):
         cfg = settings(tg={'type': 'telegram', 'enabled': True, 'bot_token_env': 'TG_TEST', 'chat_id': '123'},
                        wc={'type': 'webhook', 'enabled': True, 'format': 'wecom', 'url_env': 'WC_TEST'})
-        with patch.object(notify, 'post', side_effect=[{'ok': False, 'error_code': 403, 'description': 'PRIVATE-TOKEN'}]*3 + [{'errcode': 0}]) as post, \
-                patch.object(notify.time, 'sleep'), self.assertLogs('notify', level='WARNING') as logs:
+        with patch.object(notify, 'post', side_effect=[{'ok': False, 'error_code': 403, 'description': 'PRIVATE-TOKEN'}, {'errcode': 0}]) as post, \
+                patch.object(notify.time, 'sleep'), self.assertLogs('job_agent.notify', level='WARNING') as logs:
             result = notify.send_channels(cfg, 'title', 'text')
-        self.assertEqual(post.call_count, 4)
+        self.assertEqual(post.call_count, 2)
         self.assertEqual(result['tg'], {'success': False, 'error_code': '403'})
         self.assertTrue(result['wc']['success'])
         self.assertNotIn('PRIVATE', str(logs.output))
@@ -126,7 +126,7 @@ class NotifyTest(unittest.TestCase):
                                    (200, b'x'*(1024*1024+1), 'invalid_response')]:
             connection = MagicMock()
             response = connection.getresponse.return_value
-            response.status, response.read.return_value = status, raw
+            response.status, response.read1.side_effect = status, [raw, b'']
             with self.subTest(code=code), patch.object(notify, 'HTTPSConnection', return_value=connection), \
                     self.assertRaises(notify.SendError) as ctx:
                 notify.post('https://example.invalid/PRIVATE', {})

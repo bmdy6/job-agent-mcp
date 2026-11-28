@@ -1,8 +1,8 @@
 import sys, unittest
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from platforms.greeting import same_text
-from platforms.boss import pages
+from job_agent.platforms.greeting import same_text
+from job_agent.platforms.boss import pages
 
 
 class GreetingReceiptTextTest(unittest.TestCase):

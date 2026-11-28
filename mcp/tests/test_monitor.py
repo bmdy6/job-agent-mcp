@@ -4,11 +4,11 @@ from pathlib import Path
 import tempfile
 import unittest
 from unittest.mock import patch
-from browser.base import FakeBrowser
-from config import Settings
-from platforms.base import ReplyEvent
-from store import Store
-from monitor import Monitor, MonitorSettings
+from job_agent.browser.base import FakeBrowser
+from job_agent.config import Settings
+from job_agent.platforms.base import ReplyEvent
+from job_agent.store import Store
+from job_agent.monitor import Monitor, MonitorSettings
 
 class Source:
     def __init__(self, platform, events=(), error=None):
@@ -38,7 +38,7 @@ class MonitorTests(unittest.TestCase):
         self.config = Settings.model_validate({'notify': {'enabled': True, 'channels': {
             'tg': {'type': 'telegram', 'enabled': True, 'chat_id': 'fake'}}}})
         self.browser = FakeBrowser()
-        self.sender = patch('notify.send_one', return_value={'success': True}).start()
+        self.sender = patch('job_agent.notify.send_one', return_value={'success': True}).start()
         self.addCleanup(patch.stopall)
     def monitor(self, sources):
         return Monitor(self.browser, sources, self.store, self.config, MonitorSettings(failure_threshold=2))
@@ -160,7 +160,7 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(self.sender.call_count, 1)
         self.assertTrue(monitor.stopped)
     def test_full_body_chunks_and_watch_shared_receipts(self):
-        from watch import poll_once
+        from job_agent.watch import poll_once
         body = '很长的回复😀' * 1000
         self.monitor([Source('boss', [event(body=body)])]).poll_once()
         self.assertGreater(self.sender.call_count, 1)
@@ -168,18 +168,18 @@ class MonitorTests(unittest.TestCase):
         self.assertEqual(''.join(chunks), body)
         self.assertEqual(poll_once(self.config, source='replies', store=self.store)['sent'], 0)
     def test_shutdown_on_cli_once_and_keyboard_interrupt(self):
-        from cli import main
-        from monitor.runtime import run
-        with patch('monitor.runtime.create_browser', return_value=self.browser), patch('monitor.runtime.create_sources', return_value=[]):
+        from job_agent.cli import main
+        from job_agent.monitor.runtime import run
+        with patch('job_agent.monitor.runtime.create_browser', return_value=self.browser), patch('job_agent.monitor.runtime.create_sources', return_value=[]):
             self.assertEqual(main(['monitor', '--once']), 0)
         self.assertEqual(self.browser.shut, ['job-agent 监听'])
-        with patch('monitor.runtime.create_browser', return_value=self.browser), patch('monitor.runtime.create_sources', return_value=[]), patch('monitor.runtime.time.sleep', side_effect=KeyboardInterrupt):
+        with patch('job_agent.monitor.runtime.create_browser', return_value=self.browser), patch('job_agent.monitor.runtime.create_sources', return_value=[]), patch('job_agent.monitor.runtime.time.sleep', side_effect=KeyboardInterrupt):
             self.assertEqual(run(once=False), 0)
         self.assertEqual(len(self.browser.shut), 2)
 
     def test_config_and_watch_cli_use_owned_replies(self):
-        from cli import main
-        from monitor.config import load_settings
+        from job_agent.cli import main
+        from job_agent.monitor.config import load_settings
         import contextlib
         import io
         (self.home/'config.yaml').write_text('engine:\n  monitor:\n    interval_minutes: 12\n    failure_threshold: 4\n    platforms: [boss]\n')
@@ -201,11 +201,11 @@ class MonitorTests(unittest.TestCase):
 
     def test_runtime_lock_overlap_never_opens_or_shutdowns_space(self):
         import fcntl
-        from monitor.runtime import run
+        from job_agent.monitor.runtime import run
         fd = os.open(self.home/'monitor-run.lock', os.O_CREAT | os.O_WRONLY, 0o600)
         try:
             fcntl.flock(fd, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            with patch('monitor.runtime.create_browser') as factory:
+            with patch('job_agent.monitor.runtime.create_browser') as factory:
                 self.assertEqual(run(once=True), 0)
                 factory.assert_not_called()
         finally:
@@ -213,17 +213,17 @@ class MonitorTests(unittest.TestCase):
 
     def test_sigterm_shutdown_and_handler_restored(self):
         import signal
-        from monitor.runtime import run
+        from job_agent.monitor.runtime import run
         previous = signal.getsignal(signal.SIGTERM)
         def terminate(_):
             signal.raise_signal(signal.SIGTERM)
-        with patch('monitor.runtime.create_browser', return_value=self.browser), patch('monitor.runtime.create_sources', return_value=[]), patch('monitor.runtime.time.sleep', side_effect=terminate):
+        with patch('job_agent.monitor.runtime.create_browser', return_value=self.browser), patch('job_agent.monitor.runtime.create_sources', return_value=[]), patch('job_agent.monitor.runtime.time.sleep', side_effect=terminate):
             self.assertEqual(run(), 0)
         self.assertEqual(self.browser.shut, ['job-agent 监听'])
         self.assertEqual(signal.getsignal(signal.SIGTERM), previous)
 
     def test_missing_adapter_isolated_and_alert_retry(self):
-        from monitor.runtime import create_sources
+        from job_agent.monitor.runtime import create_sources
         sources = create_sources(self.browser, MonitorSettings(platforms=['boss']))
         self.sender.return_value = {'success': False}
         monitor = self.monitor(sources)
@@ -238,7 +238,7 @@ class MonitorTests(unittest.TestCase):
     def test_database_reopen_and_per_channel_receipts(self):
         second_channel = self.config.notify.channels['tg'].model_copy()
         self.config.notify.channels['second'] = second_channel
-        def send(channel, *args):
+        def send(channel, *args, **kwargs):
             return {'success': channel is not second_channel}
         self.sender.side_effect = send
         self.assertEqual(self.monitor([Source('boss', [event()])]).poll_once()['sent'], 1)

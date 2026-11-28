@@ -10,12 +10,12 @@
 codex mcp add job-agent \
   --env "JOB_AGENT_HOME=${JOB_AGENT_HOME:-$HOME/.job-agent}" \
   --env JOB_AGENT_CALLER=codex \
-  -- uv run --project "$PWD/mcp" python "$PWD/mcp/server.py"
+  -- uv run --project "$PWD/mcp" python -m job_agent.server
 
 claude mcp add job-agent --transport stdio --scope user \
   --env "JOB_AGENT_HOME=${JOB_AGENT_HOME:-$HOME/.job-agent}" \
   --env JOB_AGENT_CALLER=claude-code \
-  -- uv run --project "$PWD/mcp" python "$PWD/mcp/server.py"
+  -- uv run --project "$PWD/mcp" python -m job_agent.server
 ```
 
 已在本机通过 `codex mcp add --help` / `claude mcp add --help` 核对参数；这里给出注册命令，不会自动改动已有客户端注册。
@@ -26,7 +26,7 @@ claude mcp add job-agent --transport stdio --scope user \
 
 采集先 `check_collection`，授权后 `start_collection(confirm=true)`。评分先预览请求数，再明确授权付费。投递先 `preview_greetings` 展示完整不可变批次，用户确认后用返回的 token 调 `send_greetings`；名单或文案变更须重新预览。投递状态用 `delivery_status`，停止用 `stop_delivery`。
 
-监听需独立授权 `start_reply_monitor(confirm=true)`，状态与停止为 `reply_monitor_status` / `stop_reply_monitor`；own 监听不自动回复或发简历。通知默认关闭，按配置启用自己的 Telegram 渠道。旧配置与已删除工具见[迁移说明](migrations/BTY-10.md)。
+监听需独立授权 `start_reply_monitor(confirm=true)`，状态与停止为 `reply_monitor_status` / `stop_reply_monitor`；own 监听不自动回复或发简历。通知默认关闭，按配置启用自己的 Telegram 或 Webhook 渠道；投递汇总和监听告警会发送到所有已启用渠道。旧配置与已删除工具见[迁移说明](migrations/BTY-10.md)。
 
 ### own 评分
 
@@ -36,7 +36,7 @@ claude mcp add job-agent --transport stdio --scope user \
 2. 向用户展示请求数，取得授权后调用 `start_scoring(job_ids, confirm=true)`，返回后台任务和运行 ID。默认最多 10 个岗位/批，按每个岗位一次请求串行执行，无自动重试。
 3. `scoring_runs()` 读取最近 20 批的逐项状态、用量和 `remaining_tokens`；`get_job` 返回分数、理由与 trace。分数参与查询/排序、统计和每日候选排序，不改变投递状态，也不自动发送。
 
-默认使用 `gpt-6.1-sol`、`service_tier: priority`，请求只传 `max_completion_tokens`，不传 `max_tokens` 或 `thinking`。先用单条取得 `x-ratelimit-remaining-tokens` 再扩批；同一批后续请求在上一条余额未知或不足时标为 `blocked/rate_limit_budget`，不等待、不重试。预算采用 UTF-8 字节数上界加输出上限和余量，并非精确 tokenizer 计数。
+默认使用 `gpt-6.1-sol`、`service_tier: priority`，请求只传 `max_completion_tokens`，不传 `max_tokens` 或 `thinking`。先用单条取得 `x-ratelimit-remaining-tokens` 再扩批；同一批后续请求在上一条余额未知或不足时标为 `blocked/rate_limit_budget`，不等待、不重试。预算采用 UTF-8 字节数上界加输出上限和余量，并非精确 tokenizer 计数。`scoring.require_ratelimit_header` 默认为 `true`，旧配置无需修改；服务不返回限流头时可设为 `false`，允许后续岗位继续评分。明确的余额不足、HTTP 拒绝或请求异常仍会阻止后续请求。
 
 采集写入的新岗位自动出现在待评分统计中，只有有 JD 且未过滤的岗位可评；每日任务不会自动付费评分。导入的旧分数和理由（含有理由的零分）保留并跳过，不提供自动重评。缺 JD 先补全再评。`failed/invalid_model_result` 不落分，用户可重新预览授权；超时、连接中断或进程意外退出的已发出请求保留未知状态/占位，防止重复收费，须人工查证后处理，不能直接重跑。
 

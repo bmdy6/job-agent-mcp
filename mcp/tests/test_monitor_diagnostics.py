@@ -1,8 +1,9 @@
+from state_helpers import read_state_file, write_state_file
 import json
 import unittest
 import test_monitor
 from test_monitor import Source
-from browser.base import BrowserError
+from job_agent.browser.base import BrowserError
 
 class DiagnosticTests(unittest.TestCase):
     setUp = test_monitor.MonitorTests.setUp
@@ -41,7 +42,7 @@ class DiagnosticTests(unittest.TestCase):
         self.assertTrue(row['last_success_at'])
         self.assertEqual(row['last_failure']['reason_code'],'summary_field_missing:latestMsgId')
         self.assertNotIn('PRIVATE',str(self.sender.call_args_list))
-        self.assertNotIn('PRIVATE',(self.home/'monitor-state.json').read_text())
+        self.assertNotIn('PRIVATE',read_state_file(self.home/'monitor-state.json'))
 
     def test_no_recovery_without_delivered_alert(self):
         source=Source('liepin',error=self.error('page_timeout'))
@@ -51,15 +52,15 @@ class DiagnosticTests(unittest.TestCase):
         self.sender.assert_not_called()
 
     def test_runtime_persists_failure_diagnostics(self):
-        from monitor.runtime import run
+        from job_agent.monitor.runtime import run
         from unittest.mock import patch
         source=Source('liepin',error=self.error('summary_field_missing:latestMsgId'))
-        with patch('monitor.runtime.create_browser',return_value=self.browser), \
-             patch('monitor.runtime.create_sources',return_value=[source]), \
-             patch('service.safety.PlatformSafety.require'), \
-             patch('engine.rate.RateLimiter.acquire'):
+        with patch('job_agent.monitor.runtime.create_browser',return_value=self.browser), \
+             patch('job_agent.monitor.runtime.create_sources',return_value=[source]), \
+             patch('job_agent.service.safety.PlatformSafety.require'), \
+             patch('job_agent.engine.rate.RateLimiter.acquire'):
             self.assertEqual(run(once=True),1)
-        data=json.loads((self.home/'monitor-runtime.json').read_text())
+        data=json.loads(read_state_file(self.home/'monitor-runtime.json'))
         self.assertEqual(data['platforms']['liepin']['stage'],'read_summary')
         self.assertEqual(data['platforms']['liepin']['reason_code'],'summary_field_missing:latestMsgId')
         self.assertNotIn('PRIVATE',json.dumps(data))
@@ -79,10 +80,10 @@ class DiagnosticTests(unittest.TestCase):
         self.monitor([source]).poll_once()
         self.assertEqual(self.sender.call_count,6)
         self.assertNotIn('PRIVATE',str(self.sender.call_args_list))
-        self.assertNotIn('https://private',(self.home/'monitor-state.json').read_text())
+        self.assertNotIn('https://private',read_state_file(self.home/'monitor-state.json'))
 
     def test_legacy_space_receipts_recover_without_missing_fields(self):
-        (self.home/'monitor-state.json').write_text(json.dumps({'space':{'count':1,'kind':'space','notified':['tg']}}))
+        write_state_file(self.home/'monitor-state.json', json.dumps({'space':{'count':1,'kind':'space','notified':['tg']}}))
         self.monitor([Source('liepin')]).poll_once()
         self.assertEqual(self.sender.call_count,1)
         self.assertIn('已恢复',self.sender.call_args.args[2])
@@ -97,11 +98,11 @@ class DiagnosticTests(unittest.TestCase):
         self.monitor([source]).poll_once()
         self.assertEqual(len(source.calls),1)
         self.assertEqual(self.sender.call_count,2)
-        state=json.loads((self.home/'monitor-state.json').read_text())
+        state=json.loads(read_state_file(self.home/'monitor-state.json'))
         self.assertEqual(state['liepin']['count'],1)
 
     def test_session_preflight_uses_detailed_alert_and_rate_wait_does_not(self):
-        from engine.rate import RateDeferred
+        from job_agent.engine.rate import RateDeferred
         from unittest.mock import Mock
         source=Source('liepin')
         safety=Mock(); safety.require.side_effect=RateDeferred('login_required')
@@ -116,3 +117,20 @@ class DiagnosticTests(unittest.TestCase):
         monitor=self.monitor([Source('boss')]); monitor.limiter=limiter
         monitor.poll_once()
         self.sender.assert_not_called()
+
+    def test_51job_42_failures_delivered_receipt_survives_restart_then_recovers(self):
+        source=Source('51job',error=self.error('receipt_unknown','fetch'))
+        for count in range(1,43):
+            row=self.monitor([source]).poll_once()['platforms']['51job']
+            self.assertEqual(row['consecutive_failures'],count)
+        self.assertEqual(self.sender.call_count,1)
+        body=self.sender.call_args.args[2]
+        for value in ['51job','阶段：fetch','原因码：receipt_unknown','处理建议：']:
+            self.assertIn(value,body)
+        state=json.loads(read_state_file(self.home/'monitor-state.json'))['51job']
+        self.assertEqual(state['reason_notified'],{'fetch:receipt_unknown':['tg']})
+        source.error=None
+        self.monitor([source]).poll_once()
+        self.monitor([source]).poll_once()
+        self.assertEqual(self.sender.call_count,2)
+        self.assertIn('已恢复',self.sender.call_args.args[2])

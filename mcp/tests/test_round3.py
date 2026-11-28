@@ -5,15 +5,15 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 
-from browser.ego import EgoBrowser, _SCRIPT
-from browser.input_config import InputSettings
+from job_agent.browser.ego import EgoBrowser, _SCRIPT
+from job_agent.config.input import InputSettings
 from test_ego_browser import result
 
 
 class SparseInputTests(unittest.TestCase):
     def test_sparse_special_points_stay_within_configured_count(self):
         cfg = InputSettings(hesitation_probability=1, overshoot_probability=1).model_dump()
-        script = (Path(__file__).resolve().parents[1]/"browser"/"humanize.js").read_text() + '''
+        script = (Path(__file__).resolve().parents[1]/"job_agent"/"browser"/"humanize.js").read_text() + '''
 const cfg=JSON.parse(process.argv[1]);
 console.log(JSON.stringify(Array.from({length:100},(_,seed)=>trajectory(
  {x:600,y:300,width:100,height:50},{width:1000,height:800},[10,10],cfg,seed))));
@@ -28,7 +28,7 @@ console.log(JSON.stringify(Array.from({length:100},(_,seed)=>trajectory(
 
     def test_slow_mouse_budget_is_added_to_page_timeout_and_rolling_samples(self):
         cfg=InputSettings(mouse_sample_window=2)
-        with patch('browser.ego.subprocess.run') as run:
+        with patch('job_agent.browser.ego.subprocess.run') as run:
             run.return_value=result({'space_id':1,'anchor':'p1'})
             browser=EgoBrowser(timeout_s=30,keepalive_seconds=0,human_input=cfg)
             space=browser.space('test')
@@ -36,7 +36,7 @@ console.log(JSON.stringify(Array.from({length:100},(_,seed)=>trajectory(
             page=space.new_page()
             run.return_value=result({'mouse':[100,100], 'trace':[], 'gesture':{
                 'planned_points':8,'duration_ms':24000,'move_ms':[900,1500,3000]}})
-            with self.assertLogs('browser.ego',level='INFO') as logs:
+            with self.assertLogs('job_agent.browser.ego',level='INFO') as logs:
                 page.hover('#input')
             first=run.call_args.kwargs['timeout']
             self.assertGreater(first,30+8*1.1)
@@ -79,12 +79,12 @@ globalThis.taskSpace=async()=>({ownership:'agent',tabs:async()=>[{label:'p2',ope
         self.assertTrue(all(60 <= ms <= 180 for ms in typed['delays'][-4:]))
 
     def test_transport_timeout_retains_completed_progress_and_never_replays(self):
-        from browser.base import PageTimeout
+        from job_agent.browser.base import PageTimeout
         payload={'gesture':{'planned_points':8,'duration_ms':2100,'move_ms':[1000,1100]}}
         partial='__JOB_AGENT_GESTURE__'+json.dumps(payload)+'\n'
-        with patch('browser.ego.subprocess.run',side_effect=subprocess.TimeoutExpired('ego',60,output=partial)) as run:
+        with patch('job_agent.browser.ego.subprocess.run',side_effect=subprocess.TimeoutExpired('ego',60,output=partial)) as run:
             b=EgoBrowser(keepalive_seconds=0)
-            with self.assertLogs('browser.ego',level='INFO') as logs:
+            with self.assertLogs('job_agent.browser.ego',level='INFO') as logs:
                 with self.assertRaises(PageTimeout):b._call({'method':'hover'})
             self.assertEqual(run.call_count,1)
             self.assertEqual(b.mouse_point_ms,1050)
@@ -92,24 +92,24 @@ globalThis.taskSpace=async()=>({ownership:'agent',tabs:async()=>[{label:'p2',ope
             self.assertIn('isTrusted=unknown',' '.join(logs.output))
 
     def test_failed_gesture_keeps_timing_samples(self):
-        from browser.base import BrowserError
+        from job_agent.browser.base import BrowserError
         payload={'ok':False,'code':'browser_error','trace':[], 'gesture':{
             'planned_points':6,'duration_ms':2200,'move_ms':[1100,1100]}}
         response=result(None)
         response.stdout='__JOB_AGENT_RESULT__'+json.dumps(payload)
-        with patch('browser.ego.subprocess.run',return_value=response):
+        with patch('job_agent.browser.ego.subprocess.run',return_value=response):
             b=EgoBrowser(keepalive_seconds=0)
-            with self.assertLogs('browser.ego',level='INFO'):
+            with self.assertLogs('job_agent.browser.ego',level='INFO'):
                 with self.assertRaises(BrowserError):b._call({'method':'hover'})
         self.assertEqual(b.mouse_point_ms,1100)
 
 
 class Unverified704Test(unittest.TestCase):
     def test_704_blocks_preview_and_confirm_even_if_queue_is_failed(self):
-        from config import Settings
-        from engine.models import Job
-        from service.deliver import preview
-        from store import SQLiteDeliveryStore
+        from job_agent.config import Settings
+        from job_agent.engine.models import Job
+        from job_agent.service.deliver import preview
+        from job_agent.store import SQLiteDeliveryStore
         with tempfile.TemporaryDirectory() as tmp:
             with SQLiteDeliveryStore(Path(tmp)/'queue.sqlite') as db:
                 cfg=Settings(engine={'platforms':{'zhilian':{'enabled':True,'greeting_max_length':500,'greeting_mode':'platform_default'}}})
@@ -124,8 +124,8 @@ class Unverified704Test(unittest.TestCase):
                 self.assertEqual(db.list_deliveries()[0]['status'],'unverified')
                 # The MCP facade must reject the same ID before issuing another token.
                 import os
-                from service.mcp_backend import preview as mcp_preview
-                with patch.dict(os.environ,JOB_AGENT_HOME=tmp), patch('service.mcp_backend.load_config',return_value=cfg):
+                from job_agent.service.mcp_backend import preview as mcp_preview
+                with patch.dict(os.environ,JOB_AGENT_HOME=tmp), patch('job_agent.service.mcp_backend.load_config',return_value=cfg):
                     # Facade uses the default filename in this isolated HOME.
-                    with patch('service.mcp_backend.SQLiteDeliveryStore',return_value=db):
+                    with patch('job_agent.service.mcp_backend.SQLiteDeliveryStore',return_value=db):
                         with self.assertRaises(ValueError):mcp_preview(['704'])

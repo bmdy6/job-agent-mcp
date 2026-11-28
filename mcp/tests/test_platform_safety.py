@@ -1,3 +1,4 @@
+from state_helpers import business_snapshot
 import os
 import sys
 import time
@@ -6,14 +7,14 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-from browser.base import FakeBrowser,FakeSpace,FakePage
-from config import Settings
-from store import Store
-from store.collection import CollectionRepository
-from platforms.session import check_session,SessionResult
-from service.safety import PlatformSafety
-from collect.runner import Collector
-from collect.config import CollectSettings
+from job_agent.browser.base import FakeBrowser,FakeSpace,FakePage
+from job_agent.config import Settings
+from job_agent.store import Store
+from job_agent.store.collection import CollectionRepository
+from job_agent.platforms.session import check_session,SessionResult
+from job_agent.service.safety import PlatformSafety
+from job_agent.collect.runner import Collector
+from job_agent.config.collect import CollectSettings
 
 
 class SafetyTest(unittest.TestCase):
@@ -58,7 +59,7 @@ class SafetyTest(unittest.TestCase):
         self.assertTrue(safety.resume('liepin')['resumed'])
         self.assertNotIn('liepin',safety.repo.pauses())
     def test_collection_login_skip_other_platform_runs_and_notifies(self):
-        from collect.fake import FakeSource
+        from job_agent.collect.fake import FakeSource
         browser=FakeBrowser();alerts=[]
         safety=PlatformSafety(browser,self.store,self.config,alert=lambda *a:alerts.append(a),
           check=lambda b,p,s:SessionResult(p,p=='boss','' if p=='boss' else 'login_required',p=='boss'))
@@ -84,17 +85,17 @@ class SafetyTest(unittest.TestCase):
 
 class NotificationTest(unittest.TestCase):
     def test_exact_telegram_login_instruction_no_body_or_url(self):
-        from service.safety import telegram_alert
+        from job_agent.service.safety import telegram_alert
         config=Settings(notify={'enabled':True,'channels':{'tg':{'type':'telegram','enabled':True,'chat_id':'test'}}})
-        with patch('notify.send_one',return_value={'success':True}) as send:
+        with patch('job_agent.notify.send_one',return_value={'success':True}) as send:
             telegram_alert(config,'zhilian','login_required')
         self.assertEqual(send.call_args.args[2],'请在 Ego 空间「job-agent 采集」里登录 智联')
 
     def test_ego_subprocess_timeout_is_bounded_by_collection_deadline(self):
         import subprocess
-        from browser.ego import EgoBrowser
-        from collect.deadline import platform_deadline,CollectionTimeout
-        with patch('browser.ego.subprocess.run',side_effect=subprocess.TimeoutExpired('ego',.1)) as run:
+        from job_agent.browser.ego import EgoBrowser
+        from job_agent.collect.deadline import platform_deadline,CollectionTimeout
+        with patch('job_agent.browser.ego.subprocess.run',side_effect=subprocess.TimeoutExpired('ego',.1)) as run:
             with self.assertRaises(CollectionTimeout):
                 with platform_deadline(.1):EgoBrowser(keepalive_seconds=0)._call({'op':'space','name':'test'})
         self.assertLessEqual(run.call_args.kwargs['timeout'],.1)
@@ -114,7 +115,7 @@ class MigrationTest(unittest.TestCase):
             original=yaml.safe_dump(data)
             config.write_text(original)
             with patch('sys.argv',['migrate','--config',str(config),'--apply']):module.main()
-            self.assertEqual(next(Path(tmp).glob('config.yaml.backup-*')).read_text(),original)
+            self.assertEqual(next((Path(tmp)/'config-history').glob('*-config.yaml')).read_text(),original)
             updated=yaml.safe_load(config.read_text())
             self.assertEqual(updated['engine']['platforms']['boss']['interval_seconds'],30)
             self.assertEqual(updated['engine']['platforms']['boss']['daily_limit'],200)
@@ -137,7 +138,7 @@ class RiskAndCleanupTest(unittest.TestCase):
             self.assertEqual(result['reason'],'pause_changed')
             self.assertIn('boss',safety.repo.pauses())
     def test_login_notification_failure_still_skips_platform_with_visible_failure(self):
-        from engine.rate import RateDeferred
+        from job_agent.engine.rate import RateDeferred
         with tempfile.TemporaryDirectory() as tmp,Store(Path(tmp)/'jobs.sqlite3') as store:
             safety=PlatformSafety(FakeBrowser(),store,Settings(),check=lambda b,p,s:SessionResult(p,False,'login_required'),
                alert=lambda *a:(_ for _ in ()).throw(RuntimeError('private provider error')))
@@ -145,10 +146,10 @@ class RiskAndCleanupTest(unittest.TestCase):
             self.assertEqual(error.exception.code,'login_required')
             self.assertTrue(error.exception.alert_failed)
     def test_live_queue_login_skip_has_no_attempt_and_other_platform_continues(self):
-        from store import SQLiteDeliveryStore
-        from service.deliver import preview,confirm
-        from engine.queue import DeliveryEngine
-        from engine.models import Status,Reason
+        from job_agent.store import SQLiteDeliveryStore
+        from job_agent.service.deliver import preview,confirm
+        from job_agent.engine.queue import DeliveryEngine
+        from job_agent.engine.models import Status,Reason
         import json
         config=Settings(engine={'backend':'own','dry_run':False,'live_send_enabled':True,'platforms':{
             p:{'enabled':True,'greeting':'hi','greeting_max_length':500,'rate':{'interval_seconds':[0,0],'allowed_hours':['00:00','23:59']}}
@@ -156,41 +157,42 @@ class RiskAndCleanupTest(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp,SQLiteDeliveryStore(Path(tmp)/'live.sqlite3',dry_run=False) as store:
             ids=[store.upsert_job(platform=p,platform_job_id='test-'+p,url='https://example.invalid/'+p) for p in ('zhilian','boss')]
             token=json.loads(preview(store,config,job_ids=ids))['token']
-            from engine.rate import RateDeferred
+            from job_agent.engine.rate import RateDeferred
             def require(safety,platform):
                 if platform=='zhilian':raise RateDeferred('login_required')
             def deliver(engine,job,settings,space):store.update(job,Status.SENT,Reason.NONE,1795654800)
-            with patch.object(PlatformSafety,'require',require),patch.object(DeliveryEngine,'_deliver',deliver),patch('browser.ego.EgoBrowser.shutdown'):
+            with patch.object(PlatformSafety,'require',require),patch.object(DeliveryEngine,'_deliver',deliver),patch('job_agent.browser.ego.EgoBrowser.shutdown'):
                 text=confirm(store,config,token)
             records={r.job.platform:r for r in store.records()}
             self.assertEqual(records['zhilian'].status,Status.PENDING)
             self.assertIsNone(records['zhilian'].attempted_at)
             self.assertEqual(records['boss'].status,Status.SENT)
-            self.assertIn('待续：未登录',text)
+            self.assertIn('待续 1（未登录 1）',text)
 
 class EntryPointTest(unittest.IsolatedAsyncioTestCase):
     async def test_setup_check_mcp_exposes_login_results_without_modifying_database(self):
         import yaml
-        import server
+        import job_agent.server as server
         with tempfile.TemporaryDirectory() as tmp,patch.dict(os.environ,{'JOB_AGENT_HOME':tmp}):
             home=Path(tmp)
             home.joinpath('config.yaml').write_text(yaml.safe_dump({'engine':{'backend':'own','platforms':{'zhilian':{'enabled':True,'greeting_max_length':500}}}}))
             with Store() as store:pass
-            before=home.joinpath('jobs.sqlite3').read_bytes()
-            from service.tasks import write
+            from state_helpers import write_state_file
+            write = lambda path, value: write_state_file(path, __import__('json').dumps(value))
             diagnostic={'count':3,'stage':'read_summary','reason_code':'summary_field_missing:latestMsgId'}
             write(home/'monitor-runtime.json',{'platforms':{'liepin':diagnostic},'last_poll_at':123})
+            before=business_snapshot(home.joinpath('jobs.sqlite3'))
             browser=FakeBrowser()
             browser.executable='/nonexistent/ego-browser'
-            with patch('browser.ego.EgoBrowser',return_value=browser),patch('platforms.session.check_session',return_value=SessionResult('zhilian',False,'login_required')):
+            with patch('job_agent.browser.ego.EgoBrowser',return_value=browser),patch('job_agent.platforms.session.check_session',return_value=SessionResult('zhilian',False,'login_required')):
                 data=(await server.mcp.call_tool('setup_check',{}))[1]
             self.assertEqual(data['checks']['platform_sessions']['platforms']['zhilian']['reason'],'login_required')
             self.assertEqual(data['checks']['monitor_diagnostics']['platforms']['liepin'],diagnostic)
             self.assertFalse(data['checks']['monitor_diagnostics']['ok'])
-            self.assertEqual(before,home.joinpath('jobs.sqlite3').read_bytes())
+            self.assertEqual(before,business_snapshot(home.joinpath('jobs.sqlite3')))
 
     async def test_manual_resume_cli_exit_and_result(self):
-        from cli import main
-        with patch('service.safety.resume_platform',return_value={'resumed':False,'reason':'login_required'}) as resume:
+        from job_agent.cli import main
+        with patch('job_agent.service.safety.resume_platform',return_value={'resumed':False,'reason':'login_required'}) as resume:
             self.assertEqual(main(['resume-platform','zhilian']),1)
         resume.assert_called_once_with('zhilian')

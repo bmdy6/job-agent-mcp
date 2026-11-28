@@ -14,7 +14,7 @@
 
 ## 安装与启动
 
-需要 Python 3.10+、[uv](https://docs.astral.sh/uv/)；网页操作还需 Ego Lite。统一部署需要 Python 3.12+ 和 macOS launchd。
+需要 Python 3.10+、[uv](https://docs.astral.sh/uv/)；网页操作还需 Ego Lite。统一部署同样支持 Python 3.10+，服务控制需要 macOS launchd。
 
 ```sh
 git clone https://github.com/bmdy6/job-agent-mcp.git
@@ -37,18 +37,29 @@ uv sync --project mcp
 | 确认投递 | `preview_greetings` → 展示完整批次 → 用户确认 → `send_greetings`；原站回执与原因码 |
 | 回复与统计 | `start_reply_monitor` 需独立授权；新回复去重推 TG，`delivery_status` / `funnel_stats` 查进度与漏斗 |
 
-[工具和配置细节](docs/usage.md) · [Agent 技能](skills/README.md) · [浏览器生命周期](docs/browser.md) · [每日任务](docs/daily/README.md)。仅保留自研后端，旧配置处理见[迁移说明](docs/migrations/BTY-10.md)。
+[工具和配置细节](docs/usage.md) · [Agent 技能](skills/README.md) · [浏览器生命周期](docs/browser.md) · [每日任务](docs/daily/README.md)。仅保留自研后端。
+
+没有 Ego Lite 也能试用 dry-run、评分预览、漏斗和看板，见[离线使用示例](docs/offline.md)。
 
 ## 当前进度
 
 | 能力 | 状态 |
 | --- | --- |
-| 采集、评分、经验要求与 HR 活跃度排序 | 四个平台已在真实页面跑通 |
-| 投递（拟人输入、频率控制、回执核对） | BOSS、智联已真实投递验证；猎聘、51job 待验收 |
-| 回复监听与 Telegram 推送 | BOSS、智联、51job 正常；猎聘修复中 |
+| 采集、评分、经验要求与 HR 活跃度排序 | BOSS、智联、猎聘、51job 已在真实页面跑通 |
+| 投递（拟人输入、频率控制、原站回执核对） | BOSS、智联、51job 真实投递中；猎聘默认关闭 |
+| 按岗位生成招呼语 | BOSS 已上线，可接 OpenAI 兼容 API，计费和额度可配置 |
+| 回复监听与 Telegram 推送 | 四个平台正常，推送带回复时间、会话直达链接 |
+| 常见问题建议回复 | 已上线：按 `qa.yaml` 和本人经历起草，**只推给本人，不自动发给 HR** |
+| 未回复自动跟进 | 已上线，默认只推名单不发送 |
+| 每日自动运行、TG 指令（暂停/恢复/查看） | 已上线 |
 | 面试邀约识别、招呼语效果对比 | 已上线，样本积累中 |
-| 每日自动运行 | 已实现，默认关闭，验收后再启用 |
-| 自动跟进、TG 指令 | 计划中 |
+
+## 使用前请先看
+
+- **平台规则风险**：自动化操作招聘网站可能违反平台用户协议，账号有被限制或封禁的可能，风险由使用者自己承担。默认的投递频率、时段和每日上限都偏保守，就是为了降低这个风险，不建议调高。
+- **只投你自己的账号**：本项目只操作你本人已登录的浏览器，不收集、不上传其他人的数据。HR 姓名和消息正文不写进日志。
+- **先 dry-run**：第一次使用请先用 dry-run 和预览确认招呼语、岗位筛选都符合预期，再打开真实投递。
+- **个人信息只放本地**：名字、经历、问答口径都写在 `$JOB_AGENT_HOME` 下的配置里，仓库只带不含个人信息的示例。
 
 ## 可观测性
 
@@ -65,7 +76,9 @@ uv sync --project mcp
 
 ```sh
 cd mcp
-PATH=$HOME/.local/bin:$PATH uv run python -m unittest discover -s tests -v
+PATH=$HOME/.local/bin:$PATH uv run python -m unittest discover -s tests -t . -v
 ```
 
-测试使用临时数据和假浏览器；真实平台验证进度以以上 Issue 为准。代码未声明 LICENSE。
+测试使用临时数据和假浏览器；真实平台验证进度以以上 Issue 为准。公开发行版采用 [MIT License](https://github.com/bmdy6/job-agent-mcp/blob/main/LICENSE)。
+
+配置变更、历史与回滚见 [配置管理](docs/settings.md)；部署入口和临时脚本替代见 [部署说明](docs/deploy.md)。

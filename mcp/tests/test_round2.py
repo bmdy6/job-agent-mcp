@@ -3,9 +3,9 @@ from pathlib import Path
 import subprocess
 import tempfile
 import unittest
-from engine.config import EngineSettings
-from browser.base import FakeBrowser
-from platforms.session import check_session
+from job_agent.config.engine import EngineSettings
+from job_agent.browser.base import FakeBrowser
+from job_agent.platforms.session import check_session
 
 import test_humanize_rate as rate_tests
 import test_engine as engine_tests
@@ -37,7 +37,7 @@ class NonblockingRateTest(unittest.TestCase):
     setUp=rate_tests.RateTest.setUp
     sleep=rate_tests.RateTest.sleep
     def test_cooling_platform_does_not_wait(self):
-        from engine.rate import RateDeferred
+        from job_agent.engine.rate import RateDeferred
         self.limiter.acquire('boss','collect',self.policy,block=False)
         now=self.now
         with self.assertRaises(RateDeferred) as caught:
@@ -53,7 +53,7 @@ class RotationTest(unittest.TestCase):
     make_engine=engine_tests.EngineTest.make_engine
     jobs=engine_tests.EngineTest.jobs
     def test_rounds_shuffle_platforms_and_one_job_each(self):
-        from engine.models import Job
+        from job_agent.engine.models import Job
         import random
         self.engine.enqueue(self.jobs(4)+[Job('zhilian',str(i),'https://example.invalid/'+str(i)) for i in range(4)])
         self.engine.random=random.Random(3)
@@ -63,9 +63,9 @@ class RotationTest(unittest.TestCase):
 
     def test_delivery_rotates_before_waiting_and_keeps_platform_interval(self):
         import random
-        from engine.config import PlatformSettings
-        from engine.adapters import FakeAdapter
-        from engine.models import Job
+        from job_agent.config.engine import PlatformSettings
+        from job_agent.engine.adapters import FakeAdapter
+        from job_agent.engine.models import Job
         self.cfg.platforms['boss'].interval_seconds=45
         self.cfg.platforms['zhilian']=PlatformSettings(enabled=True,greeting='您好',greeting_max_length=10,daily_limit=10,interval_seconds=45)
         other=FakeAdapter()
@@ -106,12 +106,12 @@ class RotationTest(unittest.TestCase):
 class CollectRotationTest(unittest.TestCase):
     setUp=collect_tests.CollectTest.setUp
     def test_real_limiter_rotation_spacing_and_pause(self):
-        from engine.rate import RateLimiter
-        from store.automation import AutomationRepository
-        from collect.runner import Collector
-        from service.safety import PlatformSafety
-        from platforms.session import SessionResult
-        from config import Settings
+        from job_agent.engine.rate import RateLimiter
+        from job_agent.store.automation import AutomationRepository
+        from job_agent.collect.runner import Collector
+        from job_agent.service.safety import PlatformSafety
+        from job_agent.platforms.session import SessionResult
+        from job_agent.config import Settings
         from datetime import datetime
         from zoneinfo import ZoneInfo
         self.clock[0]=datetime(2026,11,26,10,tzinfo=ZoneInfo('Asia/Shanghai')).timestamp()
@@ -127,7 +127,7 @@ class CollectRotationTest(unittest.TestCase):
         repo=AutomationRepository(self.store)
         limiter=RateLimiter(repo,clock=lambda:self.clock[0],sleep=sleep,seed=2)
         # Keep paused source present to verify safety excludes it before search.
-        from collect.config import PlatformSettings
+        from job_agent.config.collect import PlatformSettings
         self.settings.platforms['51job']=PlatformSettings(enabled=True)
         repo.pause('51job','risk_control')
         safety=PlatformSafety(self.browser,self.store,Settings(),check=lambda b,p,s:SessionResult(p,True,'',True),alert=lambda *a:None)
@@ -142,17 +142,17 @@ class CollectRotationTest(unittest.TestCase):
 
 class HumanDetailTest(unittest.TestCase):
     def test_seeded_hesitation_backtracks(self):
-        from browser.input_config import InputSettings
+        from job_agent.config.input import InputSettings
         cfg=InputSettings(hesitation_probability=1).model_dump()
-        js=(Path(__file__).resolve().parents[1]/"browser"/"humanize.js").read_text()+'''\nconst cfg=JSON.parse(process.argv[1]);const a=trajectory({x:500,y:300,width:100,height:50},{width:1000,height:800},[10,10],cfg,42); console.log(JSON.stringify(a));'''
+        js=(Path(__file__).resolve().parents[1]/"job_agent"/"browser"/"humanize.js").read_text()+'''\nconst cfg=JSON.parse(process.argv[1]);const a=trajectory({x:500,y:300,width:100,height:50},{width:1000,height:800},[10,10],cfg,42); console.log(JSON.stringify(a));'''
         args=['node','--input-type=module','-e',js,json.dumps(cfg)]
         a=json.loads(subprocess.check_output(args,text=True));b=json.loads(subprocess.check_output(args,text=True))
         self.assertEqual(a,b)
         self.assertTrue(any(p['delay_ms']>=100 for p in a['points']))
 
     def test_detail_wait_and_scrolls_seeded(self):
-        from browser.ego import _SCRIPT
-        from browser.input_config import InputSettings
+        from job_agent.browser.ego import _SCRIPT
+        from job_agent.config.input import InputSettings
         setup='''
 let now=0;const actions=[];
 Date.now=()=>now;

@@ -99,7 +99,7 @@ class DeployTests(unittest.TestCase):
              patch.object(self.app, 'migrate', side_effect=self.migrate):
             return self.app.deploy('HEAD')
 
-    def test_order_shared_current_and_no_immediate_daily(self):
+    def test_order_shared_current_and_daily_resume_triggers(self):
         receipt = self.perform()
         self.assertEqual(self.launchd.events[:2], [('stop', deploy.MONITOR), ('stop', deploy.DAILY)])
         self.assertEqual(self.launchd.events[2][0], 'build')
@@ -110,7 +110,8 @@ class DeployTests(unittest.TestCase):
             self.assertIn('/runtime/current/', data['ProgramArguments'][0])
             self.assertEqual(data['EnvironmentVariables']['CUSTOM'], 'keep')
             if label == deploy.DAILY:
-                self.assertNotIn('RunAtLoad', data)
+                self.assertTrue(data['RunAtLoad'])
+                self.assertEqual(data['StartInterval'], 1800)
                 self.assertNotIn('KeepAlive', data)
                 self.assertEqual(data['StartCalendarInterval'], {'Hour': 9, 'Minute': 12})
                 self.assertEqual(data['ProgramArguments'][2:], ['--max-per-platform', '1'])
@@ -265,7 +266,7 @@ class DeployTests(unittest.TestCase):
 
 class DeploymentStatusTests(unittest.TestCase):
     def test_status_reads_commit_without_opening_database(self):
-        from service.deployment import status
+        from job_agent.service.deployment import status
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, JOB_AGENT_HOME=tmp):
             self.assertIsNone(status()['commit'])
             runtime = Path(tmp)/'runtime/abc'
@@ -287,23 +288,26 @@ class LocalLaunchd(FakeLaunchd):
     def start(self, path):
         import subprocess
         super().start(path)
-        if path.stem != deploy.MONITOR:
+        if path.stem not in {deploy.MONITOR,'com.bmdy6.job-agent-monitor'}:
             return
         data = plistlib.loads(path.read_bytes())
         runtime = Path(data['ProgramArguments'][1]).parents[1]
         env = {k:v for k,v in os.environ.items() if k not in {'PYTHONPATH', 'PYTHONHOME'}}
         env['JOB_AGENT_HOME'] = data['EnvironmentVariables']['JOB_AGENT_HOME']
         self.log = open(Path(env['JOB_AGENT_HOME'])/'rehearsal-monitor.log', 'ab')
-        self.process = subprocess.Popen([data['ProgramArguments'][0], '-c', '''
-from browser.base import FakeBrowser
-import monitor.runtime as runtime
+        code = '''
+from job_agent.browser.base import FakeBrowser
+import job_agent.monitor.runtime as runtime
 runtime.create_browser = lambda config: FakeBrowser()
 runtime.create_sources = lambda browser, settings: []
 raise SystemExit(runtime.run())
-'''], cwd=runtime, env=env, stdout=self.log, stderr=self.log)
+'''
+        if not (runtime/'mcp/job_agent').exists():
+            code = code.replace('job_agent.', '')
+        self.process = subprocess.Popen([data['ProgramArguments'][0], '-c', code], cwd=runtime, env=env, stdout=self.log, stderr=self.log)
 
     def stop(self, label):
-        if label == deploy.MONITOR and self.process is not None:
+        if label in {deploy.MONITOR,'com.bmdy6.job-agent-monitor'} and self.process is not None:
             if self.process.poll() is None:
                 self.process.terminate()
             self.process.wait(timeout=15)
@@ -318,7 +322,7 @@ raise SystemExit(runtime.run())
         while time.monotonic() < deadline:
             if self.process is None or self.process.poll() is not None:
                 raise RuntimeError('Rehearsal monitor exited; inspect rehearsal-monitor.log')
-            state = deploy.read_json(home/'monitor-runtime.json', {})
+            state = deploy.monitor_runtime(home)
             if state.get('pid') == self.process.pid and state.get('started_at', 0) >= since and state.get('last_poll_at', 0) >= since:
                 if state['state'] == 'running' and not state['result']['failed']:
                     self.events.append(('healthy', deploy.MONITOR))
@@ -329,12 +333,18 @@ raise SystemExit(runtime.run())
 
 @unittest.skipUnless(os.environ.get('JOB_AGENT_DEPLOY_REHEARSE') == '1', 'opt-in real archive/venv rehearsal')
 class RehearsalTests(unittest.TestCase):
-    def test_archive_build_v5_v6_switch_restart_and_rollback(self):
+    def test_archive_build_v5_v7_switch_restart_and_rollback(self):
+        self.rehearse('b60a78d', 5)
+
+    def test_archive_build_v6_v7_switch_restart_and_rollback(self):
+        self.rehearse('0e89441', 6)
+
+    def rehearse(self, base_revision, base_version):
         import subprocess
         import time
         directory = os.environ.get('JOB_AGENT_REHEARSAL_DIR')
         if directory:
-            root = Path(directory).resolve()
+            root = Path(directory).resolve()/('v'+str(base_version))
             root.mkdir(parents=True, exist_ok=False)
         else:
             temp = tempfile.TemporaryDirectory(prefix='job-agent-deploy-')
@@ -349,11 +359,32 @@ class RehearsalTests(unittest.TestCase):
         self.addCleanup(controller.stop, deploy.MONITOR)
         app = deploy.Deployer(ROOT, home, agents, controller, health_timeout=15)
         # Production base is schema v5; exercise the actual new migration/rollback.
-        old = app.deploy('b60a78d')
-        self.assertEqual(deploy.schema_version(home/'jobs.sqlite3'), 5)
+        # Bootstrap the old flat-package runtime using its own deployment code.
+        # New deployment code installs only the new namespace; rollback restores
+        # the old entry points from the transaction snapshot.
+        import types
+        legacy = types.ModuleType('legacy_deploy')
+        legacy.__file__ = str(ROOT/'scripts/deploy.py')
+        exec(subprocess.check_output(['git','-C',str(ROOT),'show','b60a78d:scripts/deploy.py'], text=True), legacy.__dict__)
+        legacy.MONITOR=deploy.MONITOR
+        legacy.LABELS=(deploy.DAILY,deploy.MONITOR)
+        original_build=legacy.Deployer.build
+        def build_neutral_fixture(instance,sha):
+            runtime=original_build(instance,sha)
+            path=runtime/'examples/job-agent-monitor.plist'
+            data=plistlib.loads(path.read_bytes());data['Label']=deploy.MONITOR
+            path.write_bytes(plistlib.dumps(data))
+            return runtime
+        legacy.Deployer.build=build_neutral_fixture
+        old_factory = legacy.Deployer if base_version==5 else deploy.Deployer
+        old = old_factory(ROOT, home, agents, controller, health_timeout=15).deploy(base_revision)
+        self.assertEqual(deploy.schema_version(home/'jobs.sqlite3'), base_version)
         first_pid = old['health']['pid']
         new = app.deploy(os.environ.get('JOB_AGENT_DEPLOY_REVISION', 'HEAD'))
-        self.assertEqual(deploy.schema_version(home/'jobs.sqlite3'), 6)
+        self.assertEqual(deploy.schema_version(home/'jobs.sqlite3'), 7)
+        # Verify package data in the archived, non-editable installation too.
+        installed=app.python(Path(new['runtime']), "from job_agent.service.prompt_files import render_prompt; from job_agent.service.greeting_templates import DEFAULTS; assert render_prompt('greeting') and render_prompt('scoring') and render_prompt('fallback') and DEFAULTS; print('ok')")
+        self.assertEqual(installed.strip(),'ok')
         self.assertNotEqual(new['health']['pid'], first_pid)
         self.assertEqual(new['health']['deployment']['executing_commit'], new['commit'])
         self.assertGreater(new['health']['last_poll_at'], old['health']['last_poll_at'])
@@ -363,7 +394,7 @@ class RehearsalTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'restore-database'):
             app.rollback()
         back = app.rollback(restore_database=True)
-        self.assertEqual(deploy.schema_version(home/'jobs.sqlite3'), 5)
+        self.assertEqual(deploy.schema_version(home/'jobs.sqlite3'), base_version)
         self.assertEqual((home/'runtime/current').resolve(), Path(old['runtime']))
         self.assertGreater(back['health']['last_poll_at'], new['health']['last_poll_at'])
         self.assertNotEqual(back['health']['pid'], new['health']['pid'])
@@ -430,7 +461,7 @@ class LaunchdTests(unittest.TestCase):
 
 class MCPDeploymentTests(unittest.IsolatedAsyncioTestCase):
     async def test_setup_and_status_expose_current_and_executing_identity(self):
-        import server
+        import job_agent.server as server
         with tempfile.TemporaryDirectory() as tmp, patch.dict(os.environ, JOB_AGENT_HOME=tmp):
             home = Path(tmp)
             (home/'config.yaml').write_text('engine: {backend: own}\n')
@@ -438,11 +469,42 @@ class MCPDeploymentTests(unittest.IsolatedAsyncioTestCase):
             runtime.mkdir(parents=True)
             deploy.save_json(runtime/'deployment.json', {'commit':'a'*40, 'schema_version':4})
             (runtime.parent/'current').symlink_to(runtime.name)
-            with patch('service.read_tools.setup_checks', return_value={}), \
-                 patch('service.read_tools.status', return_value={}), \
-                 patch('service.monitor.status', return_value={}):
+            with patch('job_agent.service.read_tools.setup_checks', return_value={}), \
+                 patch('job_agent.service.read_tools.status', return_value={}), \
+                 patch('job_agent.service.monitor.status', return_value={}):
                 for name in ('setup_check', 'status'):
                     result = (await server.mcp.call_tool(name, {}))[1]
                     self.assertEqual(result['deployment']['commit'], 'a'*40)
                     # MCP still executes from this worktree; it must not claim new runtime code.
                     self.assertIsNone(result['deployment']['executing_commit'])
+
+class ConfigurableLabelTests(unittest.TestCase):
+    def test_existing_production_prefix_keeps_paths_and_service_identity(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home=Path(directory)/'home';home.mkdir();agents=Path(directory)/'agents';agents.mkdir()
+            label='com.bmdy6.job-agent-monitor'
+            data=dict(Label=label,EnvironmentVariables={'JOB_AGENT_HOME':str(home)},ProgramArguments=['/old/python'])
+            path=agents/(label+'.plist');path.write_bytes(plistlib.dumps(data))
+            before=path.read_bytes()
+            (home/'config.yaml').write_text('deploy:\n  label_prefix: com.bmdy6\n')
+            controller=FakeLaunchd()
+            app=deploy.Deployer(ROOT,home,agents,controller)
+            self.assertEqual(app.monitor,label)
+            self.assertEqual(app.labels,(deploy.DAILY,label))
+            self.assertEqual(path.read_bytes(),before)
+            self.assertEqual(controller.events,[])
+            self.assertEqual(list(agents.glob('*.plist')),[path])
+            app.validate()
+            self.assertEqual(controller.events,[])
+
+    def test_missing_migration_rejects_rename_before_stopping_services(self):
+        with tempfile.TemporaryDirectory() as directory:
+            home=Path(directory)/'home';home.mkdir();agents=Path(directory)/'agents';agents.mkdir()
+            label='com.bmdy6.job-agent-monitor'
+            path=agents/(label+'.plist')
+            path.write_bytes(plistlib.dumps(dict(Label=label,EnvironmentVariables={'JOB_AGENT_HOME':str(home)})))
+            controller=FakeLaunchd()
+            with self.assertRaisesRegex(ValueError,'preserve deploy.label_prefix'):
+                deploy.Deployer(ROOT,home,agents,controller)
+            self.assertEqual(controller.events,[])
+            self.assertTrue(path.exists())

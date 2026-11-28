@@ -4,10 +4,10 @@ import time
 from pathlib import Path
 from datetime import datetime
 from zoneinfo import ZoneInfo
-from browser.base import FakePage,FakeSpace,FakeBrowser
-from platforms.zhilian import pages as zl
-from platforms.boss import pages as boss
-from service.receipt_audit import audit_zhilian,audit_boss,verify_uncertain
+from job_agent.browser.base import FakePage,FakeSpace,FakeBrowser
+from job_agent.platforms.zhilian import pages as zl
+from job_agent.platforms.boss import pages as boss
+from job_agent.service.receipt_audit import audit_zhilian,audit_boss,verify_uncertain
 
 
 class ReceiptAuditTests(unittest.TestCase):
@@ -61,7 +61,7 @@ class ReceiptAuditTests(unittest.TestCase):
             self.assertFalse(verified(dict(row,**change)))
 
     def test_zhilian_fresh_exact_greeting_is_independent_of_application(self):
-        from platforms.zhilian.receipt_reader import read_greeting
+        from job_agent.platforms.zhilian.receipt_reader import read_greeting
         job=dict(self.job,greeting='全文')
         row={'msg':{'idServer':'m','fromMe':True,'flow':'out','time':self.at,
                     'type':'text','body':'全文','sendState':'success'},
@@ -97,8 +97,8 @@ class ReceiptAuditTests(unittest.TestCase):
         self.assertFalse(any(a[0] in ('click','fill','press') for a in page.actions))
 
     def test_paused_queue_not_opened_and_uncertain_history_unchanged(self):
-        from store import SQLiteDeliveryStore
-        from config import Settings
+        from job_agent.store import SQLiteDeliveryStore
+        from job_agent.config import Settings
         with tempfile.TemporaryDirectory() as tmp:
             home=Path(tmp)
             with SQLiteDeliveryStore(home/'jobs.sqlite3',dry_run=False) as store:

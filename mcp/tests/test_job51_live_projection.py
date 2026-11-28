@@ -3,7 +3,7 @@ import json
 from pathlib import Path
 import subprocess
 import unittest
-from platforms.job51 import pages
+from job_agent.platforms.job51 import pages
 
 class DialogProjection(unittest.TestCase):
     def test_component_remains_resolvable_after_dialog_moves(self):

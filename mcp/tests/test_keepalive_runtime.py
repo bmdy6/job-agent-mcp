@@ -6,9 +6,9 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from config import Settings
-from browser.ego import _SCRIPT
-from browser.notifications import space_alert
+from job_agent.config import Settings
+from job_agent.browser.ego import _SCRIPT
+from job_agent.browser.notifications import space_alert
 
 
 class KeepaliveRuntimeTests(unittest.TestCase):
@@ -20,27 +20,27 @@ class KeepaliveRuntimeTests(unittest.TestCase):
                 Settings(browser={'keepalive_seconds': value})
 
     def test_monitor_and_delivery_receive_interval_and_notification_callback(self):
-        from monitor.runtime import create_browser
-        from service.runtime import dependencies
+        from job_agent.monitor.runtime import create_browser
+        from job_agent.service.runtime import dependencies
         config = Settings(browser={'keepalive_seconds': 123})
-        with patch('browser.ego.EgoBrowser') as factory:
+        with patch('job_agent.browser.ego.EgoBrowser') as factory:
             create_browser(config)
             self.assertEqual(factory.call_args.kwargs['keepalive_seconds'], 123)
             self.assertTrue(callable(factory.call_args.kwargs['on_event']))
-        with patch('service.runtime.EgoBrowser') as factory:
+        with patch('job_agent.service.runtime.EgoBrowser') as factory:
             dependencies(config.engine, browser_settings=config.browser, notify_settings=config.notify)
             self.assertEqual(factory.call_args.kwargs['keepalive_seconds'], 123)
             self.assertTrue(callable(factory.call_args.kwargs['on_event']))
 
     def test_collect_receives_interval_and_stops_driver(self):
-        from collect.runtime import collect_once
+        from job_agent.collect.runtime import collect_once
         import os
         config = Settings(browser={'keepalive_seconds': 123}, collect={
             'keywords': ['test'], 'cities': ['test'], 'platforms': {'boss': {'enabled': True}}})
         with tempfile.TemporaryDirectory() as temp, patch.dict(os.environ, {'JOB_AGENT_HOME': temp}), \
-                patch('collect.runtime.load_config', return_value=config), \
-                patch('browser.ego.EgoBrowser') as factory, \
-                patch('collect.runtime.create_sources', return_value=[]):
+                patch('job_agent.collect.runtime.load_config', return_value=config), \
+                patch('job_agent.browser.ego.EgoBrowser') as factory, \
+                patch('job_agent.collect.runtime.create_sources', return_value=[]):
             collect_once()
             self.assertEqual(factory.call_args.kwargs['keepalive_seconds'], 123)
             factory.return_value.shutdown.assert_called_once_with(config.collect.task_space_name)
@@ -50,7 +50,7 @@ class KeepaliveRuntimeTests(unittest.TestCase):
             'tg': {'type': 'telegram', 'enabled': True, 'chat_id': 'fake'},
             'off': {'type': 'telegram', 'enabled': False},
             'web': {'type': 'webhook', 'enabled': True}}}).notify
-        with patch('browser.notifications.notify.send_one', return_value={'success': True}) as send:
+        with patch('job_agent.browser.notifications.notify.send_one', return_value={'success': True}) as send:
             space_alert(Settings().notify, 'job-agent 监听', 'recreated')
             send.assert_not_called()
             for event in ['recreated', 'unavailable', 'keepalive_failed']:

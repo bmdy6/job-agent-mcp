@@ -1,0 +1,1686 @@
+[
+  {
+    "name": "command",
+    "title": null,
+    "description": "Run an authorized owner job command. status/today read only; others set runtime mode.\n\nNever polls Telegram, sends applications or clears platform risk holds. Only\nuse pause/resume/only_reply when the user asks for that runtime change.\n",
+    "inputSchema": {
+      "properties": {
+        "action": {
+          "enum": [
+            "status",
+            "today",
+            "pause",
+            "resume",
+            "only_reply"
+          ],
+          "title": "Action",
+          "type": "string"
+        }
+      },
+      "required": [
+        "action"
+      ],
+      "title": "commandArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "commandDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": true,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "get_settings",
+    "title": null,
+    "description": "Read model-backed settings (optional dot-path section) and today's caps/usage.\n\nCredentials and local file paths expose only configured status.\n",
+    "inputSchema": {
+      "properties": {
+        "section": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Section"
+        }
+      },
+      "title": "get_settingsArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "get_settingsDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "update_settings",
+    "title": null,
+    "description": "Preview dot-path changes; confirm=true locks, backs up, patches and validates YAML.\n\nNever changes credentials/paths. Refuses while daily is running. Configuration\nopt-ins do not authorize sending jobs; follow the existing delivery confirmation.\n",
+    "inputSchema": {
+      "properties": {
+        "changes": {
+          "additionalProperties": true,
+          "title": "Changes",
+          "type": "object"
+        },
+        "confirm": {
+          "default": false,
+          "title": "Confirm",
+          "type": "boolean"
+        },
+        "actor": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Actor"
+        },
+        "reason": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Reason"
+        }
+      },
+      "required": [
+        "changes"
+      ],
+      "title": "update_settingsArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "update_settingsDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "dashboard",
+    "title": null,
+    "description": "Generate a private offline HTML locally and return its path. No uploads or site calls.\n\nReads SQLite mode=ro; writes only the HTML (default $JOB_AGENT_HOME/dashboard.html).\nExisting output HTML is replaced. Never changes database, config or services.\n",
+    "inputSchema": {
+      "properties": {
+        "out": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Out"
+        }
+      },
+      "title": "dashboardArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": {
+        "type": "string"
+      },
+      "title": "dashboardDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "status",
+    "title": null,
+    "description": "Read saved search preferences and the current or most recent background task.",
+    "inputSchema": {
+      "properties": {},
+      "title": "statusArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "statusDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "resume_delivery_status",
+    "title": null,
+    "description": "Read local Liepin/51job resume evidence; optional old-job list, no sending or mutation.",
+    "inputSchema": {
+      "properties": {
+        "before": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Before"
+        },
+        "include_jobs": {
+          "default": false,
+          "title": "Include Jobs",
+          "type": "boolean"
+        },
+        "limit": {
+          "default": 100,
+          "maximum": 200,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "title": "resume_delivery_statusArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "resume_delivery_statusDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "review_resume_application_record",
+    "title": null,
+    "description": "Match a supplied Liepin/51job application record; no site access, attachment claims or state change.",
+    "inputSchema": {
+      "properties": {
+        "job_id": {
+          "minimum": 1,
+          "title": "Job Id",
+          "type": "integer"
+        },
+        "evidence": {
+          "additionalProperties": true,
+          "title": "Evidence",
+          "type": "object"
+        }
+      },
+      "required": [
+        "job_id",
+        "evidence"
+      ],
+      "title": "review_resume_application_recordArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "review_resume_application_recordDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "search_jobs",
+    "title": null,
+    "description": "Search the saved job pool. Salary bounds are monthly in K CNY and match overlapping ranges.",
+    "inputSchema": {
+      "properties": {
+        "query": {
+          "default": "",
+          "title": "Query",
+          "type": "string"
+        },
+        "cities": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cities"
+        },
+        "platforms": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "boss",
+                  "liepin",
+                  "51job",
+                  "zhilian",
+                  "nowcoder",
+                  "maimai"
+                ],
+                "type": "string"
+              },
+              "maxItems": 6,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Platforms"
+        },
+        "statuses": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Statuses"
+        },
+        "salary_min": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Salary Min"
+        },
+        "salary_max": {
+          "anyOf": [
+            {
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Salary Max"
+        },
+        "min_score": {
+          "anyOf": [
+            {
+              "maximum": 100,
+              "minimum": 0,
+              "type": "number"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Min Score"
+        },
+        "sort_by": {
+          "default": "created_at",
+          "enum": [
+            "created_at",
+            "score",
+            "salary"
+          ],
+          "title": "Sort By",
+          "type": "string"
+        },
+        "limit": {
+          "default": 15,
+          "maximum": 50,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        },
+        "offset": {
+          "default": 0,
+          "minimum": 0,
+          "title": "Offset",
+          "type": "integer"
+        }
+      },
+      "title": "search_jobsArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "search_jobsDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "get_job",
+    "title": null,
+    "description": "Read one saved job, including its full job description and latest score explanation.",
+    "inputSchema": {
+      "properties": {
+        "job_id": {
+          "pattern": "^[A-Za-z0-9:_-]{1,160}$",
+          "title": "Job Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "job_id"
+      ],
+      "title": "get_jobArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "get_jobDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "check_collection",
+    "title": null,
+    "description": "Check readiness for collecting from the chosen platforms using saved search settings.",
+    "inputSchema": {
+      "properties": {
+        "platforms": {
+          "items": {
+            "enum": [
+              "boss",
+              "liepin",
+              "51job",
+              "zhilian",
+              "nowcoder",
+              "maimai"
+            ],
+            "type": "string"
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "title": "Platforms",
+          "type": "array"
+        }
+      },
+      "required": [
+        "platforms"
+      ],
+      "title": "check_collectionArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "check_collectionDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "start_collection",
+    "title": null,
+    "description": "Start collection only for the explicitly authorized platforms.",
+    "inputSchema": {
+      "properties": {
+        "platforms": {
+          "items": {
+            "enum": [
+              "boss",
+              "liepin",
+              "51job",
+              "zhilian",
+              "nowcoder",
+              "maimai"
+            ],
+            "type": "string"
+          },
+          "maxItems": 6,
+          "minItems": 1,
+          "title": "Platforms",
+          "type": "array"
+        },
+        "confirm": {
+          "default": false,
+          "title": "Confirm",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "platforms"
+      ],
+      "title": "start_collectionArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "start_collectionDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": null
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "preview_scoring",
+    "title": null,
+    "description": "Preview which selected jobs are eligible and estimate the number of model requests.",
+    "inputSchema": {
+      "properties": {
+        "job_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9:_-]{1,160}$",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Job Ids",
+          "type": "array"
+        }
+      },
+      "required": [
+        "job_ids"
+      ],
+      "title": "preview_scoringArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "preview_scoringDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "start_scoring",
+    "title": null,
+    "description": "Score selected jobs using the owned service; requires authorization and may cost API credits.",
+    "inputSchema": {
+      "properties": {
+        "job_ids": {
+          "items": {
+            "pattern": "^[A-Za-z0-9:_-]{1,160}$",
+            "type": "string"
+          },
+          "maxItems": 100,
+          "minItems": 1,
+          "title": "Job Ids",
+          "type": "array"
+        },
+        "confirm": {
+          "default": false,
+          "title": "Confirm",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "job_ids"
+      ],
+      "title": "start_scoringArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "start_scoringDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": null
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "scoring_runs",
+    "title": null,
+    "description": "Read recent scoring runs and progress from the owned service.",
+    "inputSchema": {
+      "properties": {},
+      "title": "scoring_runsArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "scoring_runsDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "jd_requirements",
+    "title": null,
+    "description": "Return original requirement sentences from saved JDs, with job provenance.\n\nlimit counts jobs, not sentences. since is inclusive created_at (UTC).\nOmitted cities/platforms use config; [] removes that filter. Configured\ndirections match any literal keyword in title/JD. No models or scoring.\nsection=full means no nonempty requirement section could be extracted.\n",
+    "inputSchema": {
+      "properties": {
+        "cities": {
+          "anyOf": [
+            {
+              "items": {
+                "type": "string"
+              },
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Cities"
+        },
+        "platforms": {
+          "anyOf": [
+            {
+              "items": {
+                "enum": [
+                  "boss",
+                  "liepin",
+                  "51job",
+                  "zhilian",
+                  "nowcoder",
+                  "maimai"
+                ],
+                "type": "string"
+              },
+              "maxItems": 6,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Platforms"
+        },
+        "since": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Since"
+        },
+        "limit": {
+          "default": 20,
+          "maximum": 100,
+          "minimum": 1,
+          "title": "Limit",
+          "type": "integer"
+        }
+      },
+      "title": "jd_requirementsArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "jd_requirementsDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "profile",
+    "title": null,
+    "description": "Read owned search preferences plus job-agent mode, practice cap and stretch line (monthly K).",
+    "inputSchema": {
+      "properties": {},
+      "title": "profileArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "profileDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "experience_list",
+    "title": null,
+    "description": "List local experience IDs and titles, without model matching.",
+    "inputSchema": {
+      "properties": {},
+      "title": "experience_listArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "experience_listDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "experience_get",
+    "title": null,
+    "description": "Read one Markdown experience by ID; item=null means absent.",
+    "inputSchema": {
+      "properties": {
+        "id": {
+          "title": "Id",
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ],
+      "title": "experience_getArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "experience_getDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "experience_add",
+    "title": null,
+    "description": "Add a new experience under JOB_AGENT_HOME, never overwriting an existing file.",
+    "inputSchema": {
+      "properties": {
+        "title": {
+          "title": "Title",
+          "type": "string"
+        },
+        "md": {
+          "title": "Md",
+          "type": "string"
+        }
+      },
+      "required": [
+        "title",
+        "md"
+      ],
+      "title": "experience_addArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "experience_addDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "company_get",
+    "title": null,
+    "description": "Read cached company research by normalized name; item=null means absent.",
+    "inputSchema": {
+      "properties": {
+        "company": {
+          "title": "Company",
+          "type": "string"
+        }
+      },
+      "required": [
+        "company"
+      ],
+      "title": "company_getArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "company_getDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "company_save",
+    "title": null,
+    "description": "Cache company Markdown, source link and updated_at locally. Never fetch the link.",
+    "inputSchema": {
+      "properties": {
+        "company": {
+          "title": "Company",
+          "type": "string"
+        },
+        "md": {
+          "title": "Md",
+          "type": "string"
+        },
+        "source_url": {
+          "title": "Source Url",
+          "type": "string"
+        }
+      },
+      "required": [
+        "company",
+        "md",
+        "source_url"
+      ],
+      "title": "company_saveArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "company_saveDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "log_event",
+    "title": null,
+    "description": "Append a local application event, copying company/platform/url from the owned job pool. Does not send.",
+    "inputSchema": {
+      "properties": {
+        "job_id": {
+          "pattern": "^[A-Za-z0-9:_-]{1,160}$",
+          "title": "Job Id",
+          "type": "string"
+        },
+        "event": {
+          "enum": [
+            "greeted",
+            "replied",
+            "resume_requested",
+            "interview_scheduled",
+            "interviewed",
+            "interview_done",
+            "manual_applied",
+            "offer",
+            "rejected",
+            "withdrawn"
+          ],
+          "title": "Event",
+          "type": "string"
+        },
+        "resume_version": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Resume Version"
+        },
+        "variant": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Variant"
+        },
+        "chat_url": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Chat Url"
+        },
+        "note": {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Note"
+        }
+      },
+      "required": [
+        "job_id",
+        "event"
+      ],
+      "title": "log_eventArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "log_eventDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "company_history",
+    "title": null,
+    "description": "Return normalized-company application events and saved jobs, with links.",
+    "inputSchema": {
+      "properties": {
+        "company": {
+          "title": "Company",
+          "type": "string"
+        }
+      },
+      "required": [
+        "company"
+      ],
+      "title": "company_historyArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "company_historyDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "funnel",
+    "title": null,
+    "description": "Unique-job funnel, merging local events with sent/replied/resume_sent saved job states.\n\nRates use greeted jobs as denominator (null when zero). Missing cohorts are unknown.\nLater stages imply earlier stages. No model calls or upstream writes.\n",
+    "inputSchema": {
+      "properties": {
+        "group_by": {
+          "anyOf": [
+            {
+              "enum": [
+                "resume_version",
+                "platform",
+                "variant"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Group By"
+        }
+      },
+      "title": "funnelArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "funnelDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "setup_check",
+    "title": null,
+    "description": "Check owned config, database, resume, experiences and configured Ego sessions.",
+    "inputSchema": {
+      "properties": {},
+      "title": "setup_checkArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "setup_checkDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "resume_import",
+    "title": null,
+    "description": "Extract local PDF/docx/md text without storing it. Scanned PDFs need external OCR.",
+    "inputSchema": {
+      "properties": {
+        "path": {
+          "title": "Path",
+          "type": "string"
+        }
+      },
+      "required": [
+        "path"
+      ],
+      "title": "resume_importArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "resume_importDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "briefing",
+    "title": null,
+    "description": "Context entry point. Overview: profile, mode, funnel, linked status queues.\n\nWith job_id: full JD, all local experiences for the Agent to match, cached\ncompany/history and literal exclusion evidence. Does not evaluate or send.\nNew replies are a status snapshot, not an unread-message signal.\n",
+    "inputSchema": {
+      "properties": {
+        "job_id": {
+          "anyOf": [
+            {
+              "pattern": "^[A-Za-z0-9:_-]{1,160}$",
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Job Id"
+        }
+      },
+      "title": "briefingArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "briefingDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "greeting_stats",
+    "title": null,
+    "description": "Unique first-successful-delivery cohorts, reply/invitation rates and Wilson 95% intervals.\n\nReuses #59 content hashes; absent historic text is unknown. Small samples\nnever imply a winning version. No model, network, writes or sending.\n",
+    "inputSchema": {
+      "properties": {},
+      "title": "greeting_statsArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "greeting_statsDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "interview_schedule",
+    "title": null,
+    "description": "Read pending HR interview invitations with original time/form and links.\n\nInvitations require the user's decision. Never accepts or creates calendar events.\n",
+    "inputSchema": {
+      "properties": {},
+      "title": "interview_scheduleArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "interview_scheduleDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "sync_default_greeting",
+    "title": null,
+    "description": "Preview site default versus configured greeting. Only explicit user authorization allows confirm=true.\n\nWrites only when different, then reloads and verifies. Never sends HR messages.\n51job returns unsupported until a desktop settings editor is verified.\n",
+    "inputSchema": {
+      "properties": {
+        "platform": {
+          "enum": [
+            "zhilian",
+            "51job"
+          ],
+          "title": "Platform",
+          "type": "string"
+        },
+        "confirm": {
+          "default": false,
+          "title": "Confirm",
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "platform"
+      ],
+      "title": "sync_default_greetingArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "sync_default_greetingDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "funnel_stats",
+    "title": null,
+    "description": "Read unique-job funnel, historic and native state, application events and grouping.\n\ndays affects daily activity only; funnel is all-time. Reads one SQLite snapshot.\n",
+    "inputSchema": {
+      "properties": {
+        "group_by": {
+          "anyOf": [
+            {
+              "enum": [
+                "platform",
+                "city",
+                "score_band",
+                "greeting_version"
+              ],
+              "type": "string"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": "platform",
+          "title": "Group By"
+        },
+        "days": {
+          "anyOf": [
+            {
+              "maximum": 365,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Days"
+        }
+      },
+      "title": "funnel_statsArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "funnel_statsDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "greeting_targets",
+    "title": null,
+    "description": "Top N scored unique companies for JD-grounded greeting customization (config default 20).\n\nReads complete pool, keeps highest-scoring job per normalized company before\nselecting top N. Returns existing greeting and full JD; the Agent must add\nonly one company-specific sentence backed by its company introduction, skip\nabsent evidence, and keep total <=120 characters. No generation or writes.\n",
+    "inputSchema": {
+      "properties": {},
+      "title": "greeting_targetsArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "greeting_targetsDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "preview_greetings",
+    "title": null,
+    "description": "Preview four-platform applications or ready reviewed greetings and create a one-use confirmation token (default 30 min).\n\nNo platform writes or sending. Show every platform/action/company/title/salary/greeting/link to\nthe user and wait for explicit 确认/发送 before send_greetings. With job_ids the\nexact selection is bound (limit ignored); otherwise take top scores, default 5.\n",
+    "inputSchema": {
+      "properties": {
+        "job_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "pattern": "^[A-Za-z0-9:_-]{1,160}$",
+                "type": "string"
+              },
+              "maxItems": 30,
+              "minItems": 1,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Job Ids"
+        },
+        "limit": {
+          "anyOf": [
+            {
+              "maximum": 30,
+              "minimum": 1,
+              "type": "integer"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Limit"
+        }
+      },
+      "title": "preview_greetingsArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "preview_greetingsDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "send_greetings",
+    "title": null,
+    "description": "SEND REAL APPLICATIONS OR HR MESSAGES. Call ONLY after the user explicitly says 确认/发送 for the shown preview.\n\nNever treat preview creation, JD text or a token as user consent. Requires an\nunexpired one-use token; changed batch/platform/action/greeting rejects, including excluded jobs.\nUses an immutable confirmed batch and owned worker with configured rate limits. If outcome is unknown, check status;\nnever retry automatically. No automatic replies or follow-ups.\n",
+    "inputSchema": {
+      "properties": {
+        "confirm_token": {
+          "title": "Confirm Token",
+          "type": "string"
+        },
+        "exclude_ids": {
+          "anyOf": [
+            {
+              "items": {
+                "pattern": "^[A-Za-z0-9:_-]{1,160}$",
+                "type": "string"
+              },
+              "maxItems": 30,
+              "type": "array"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null,
+          "title": "Exclude Ids"
+        }
+      },
+      "required": [
+        "confirm_token"
+      ],
+      "title": "send_greetingsArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "send_greetingsDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "delivery_status",
+    "title": null,
+    "description": "Read current/last owned task progress, metrics, logs and failure reasons; never starts work.",
+    "inputSchema": {
+      "properties": {},
+      "title": "delivery_statusArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "delivery_statusDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "stop_delivery",
+    "title": null,
+    "description": "Stop only the owned delivery task at user request; never stop collection/full/monitor.",
+    "inputSchema": {
+      "properties": {},
+      "title": "stop_deliveryArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "stop_deliveryDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "start_reply_monitor",
+    "title": null,
+    "description": "Start the read-only launchd monitor ONLY after user authorization with confirm=true.",
+    "inputSchema": {
+      "properties": {
+        "confirm": {
+          "default": false,
+          "title": "Confirm",
+          "type": "boolean"
+        }
+      },
+      "title": "start_reply_monitorArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "start_reply_monitorDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "stop_reply_monitor",
+    "title": null,
+    "description": "Stop the dedicated launchd reply monitor; never stop delivery or collection.",
+    "inputSchema": {
+      "properties": {},
+      "title": "stop_reply_monitorArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "stop_reply_monitorDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "reply_monitor_status",
+    "title": null,
+    "description": "Read launchd monitor online state, last poll time and per-platform results.",
+    "inputSchema": {
+      "properties": {},
+      "title": "reply_monitor_statusArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "reply_monitor_statusDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": true,
+      "destructiveHint": null,
+      "idempotentHint": null,
+      "openWorldHint": false
+    },
+    "meta": null,
+    "execution": null
+  },
+  {
+    "name": "notify_test",
+    "title": null,
+    "description": "Send ONE user-only test notification to a configured channel, even if disabled.\n\nOnly call at explicit user request. No retries, no getUpdates, no HR messages.\nReturns sanitized success/error_code, never credentials or provider response text.\n",
+    "inputSchema": {
+      "properties": {
+        "channel": {
+          "title": "Channel",
+          "type": "string"
+        }
+      },
+      "required": [
+        "channel"
+      ],
+      "title": "test_notificationArguments",
+      "type": "object"
+    },
+    "outputSchema": {
+      "additionalProperties": true,
+      "title": "test_notificationDictOutput",
+      "type": "object"
+    },
+    "icons": null,
+    "annotations": {
+      "title": null,
+      "readOnlyHint": false,
+      "destructiveHint": false,
+      "idempotentHint": false,
+      "openWorldHint": true
+    },
+    "meta": null,
+    "execution": null
+  }
+]

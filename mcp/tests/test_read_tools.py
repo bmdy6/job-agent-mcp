@@ -1,3 +1,4 @@
+from state_helpers import business_snapshot
 """Own read tools use only a temporary SQLite pool; HTTP/browser are forbidden."""
 import json
 import os
@@ -9,9 +10,9 @@ import unittest
 from unittest.mock import patch
 
 sys.path.insert(0,str(Path(__file__).resolve().parents[1]))
-import server
-from store import Store
-from service import read_tools as own
+import job_agent.server as server
+from job_agent.store import Store
+from job_agent.service import read_tools as own
 
 
 class OwnReadTest(unittest.IsolatedAsyncioTestCase):
@@ -31,7 +32,7 @@ class OwnReadTest(unittest.IsolatedAsyncioTestCase):
             store.record_delivery(self.a,status='sent')
             store.add_reply(self.a,message_id='in1',direction='inbound',body='您好',chat_url='https://example.invalid/chat')
             store.add_reply(self.b,message_id='out1',direction='outbound',body='您好')
-        browser=patch('browser.ego.EgoBrowser._call',side_effect=AssertionError('no browser'))
+        browser=patch('job_agent.browser.ego.EgoBrowser._call',side_effect=AssertionError('no browser'))
         browser.start();self.addCleanup(browser.stop)
 
     async def call(self,name,**kwargs):
@@ -104,11 +105,11 @@ class OwnReadTest(unittest.IsolatedAsyncioTestCase):
         self.assertEqual(result['jobs'][0]['chat_url'],'https://example.invalid/hr')
 
     async def test_setup_readonly_and_missing_database(self):
-        before=(self.home/'jobs.sqlite3').read_bytes()
+        before=business_snapshot((self.home/'jobs.sqlite3'))
         result=await self.call('setup_check')
         self.assertTrue(result['checks']['database']['ok'])
         self.assertFalse(result['checks']['ego_spaces']['verified'])
-        self.assertEqual(before,(self.home/'jobs.sqlite3').read_bytes())
+        self.assertEqual(before,business_snapshot((self.home/'jobs.sqlite3')))
         (self.home/'jobs.sqlite3').unlink()
         checks=own.setup_checks()
         self.assertFalse(checks['database']['ok'])
@@ -116,7 +117,7 @@ class OwnReadTest(unittest.IsolatedAsyncioTestCase):
 
     async def test_read_tools_do_not_write_pool_or_legacy_events(self):
         (self.home/'applications.jsonl').write_text('invalid ignored legacy file')
-        before=(self.home/'jobs.sqlite3').read_bytes()
+        before=business_snapshot((self.home/'jobs.sqlite3'))
         for name in ['funnel_stats','briefing','status','profile','search_jobs']:
             await self.call(name)
-        self.assertEqual(before,(self.home/'jobs.sqlite3').read_bytes())
+        self.assertEqual(before,business_snapshot((self.home/'jobs.sqlite3')))

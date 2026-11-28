@@ -1,0 +1,43 @@
+# 用户于2026-11-28确认；仅作来源素材，不自动写入生产目录。生成时只在岗位相关时使用一条。
+version: 1
+facts:
+- id: search-cost
+  text: 之前觉得搜索接口太贵，我自己找了个替代方案换上去，一年能省一万多。
+  when: JD 提到成本、搜索、联网、工具调用、Agent，或者想体现主动性
+  tags:
+  - 省钱
+  - 主动性
+  - 搜索
+  - Agent
+  confirmed: true
+  source: 简历 v8.5 其他贡献：独立调研并上线 DeepSeek Search 替换 Tavily，预计年省超1万元
+- id: canteen-own-data
+  text: 毕设做食堂菜品识别，没有现成的数据，我就自己一张张采集餐盘照片来训练，识别准确率做到了95%以上。
+  when: JD 提到图像、视觉、多模态、识别、数据采集、校招或应届
+  tags:
+  - 图像
+  - 多模态
+  - 主动性
+  - 应届
+  confirmed: true
+  source: 简历 v8.5 毕业设计：自采餐盘与食材图片训练 YOLOv8，置信度 95%+，同学试用过
+- id: rerank-kept-off
+  text: 我习惯先测再上：给知识库加过一个提准确率的功能，测下来帮助不大还变慢，我就默认关掉了。
+  when: JD 提到 RAG、检索、知识库、评测、效果优化
+  tags:
+  - RAG
+  - 知识库
+  - 评测
+  - 务实
+  confirmed: true
+  source: 简历 v8.5 knowledge-mcp：对比 BM25 与 bge-reranker，私有集收益小且延迟增加，默认关闭、按需开启
+- id: source-training-prototype
+  text: 新同事看代码上手慢，我做了个小工具，把代码自动整理成学习大纲，先在4条业务流程上试过。
+  when: JD 提到 Agent、知识、培训、文档、研发效率、代码理解
+  tags:
+  - Agent
+  - 自动化
+  - 主动性
+  - 效率
+  confirmed: true
+  source: 简历 v8.5 其他贡献：源码培训 Agent 原型，试点覆盖4条流程、127个节点

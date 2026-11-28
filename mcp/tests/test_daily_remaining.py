@@ -6,10 +6,10 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-from browser.platform_lock import platform_lock, PlatformBusy
-from collect.config import CollectSettings
-from config import Settings
-from service.daily import summarize, delivery_message
+from job_agent.browser.platform_lock import platform_lock, PlatformBusy
+from job_agent.config.collect import CollectSettings
+from job_agent.config import Settings
+from job_agent.service.daily import summarize, delivery_message
 
 
 class RemainingTests(unittest.TestCase):
@@ -26,7 +26,7 @@ class RemainingTests(unittest.TestCase):
 
     def test_cross_process_lock_and_release_and_other_platform(self):
         with tempfile.TemporaryDirectory() as home, patch.dict(os.environ,JOB_AGENT_HOME=home):
-            script='from browser.platform_lock import platform_lock,PlatformBusy\ntry:\n with platform_lock("boss"): pass\nexcept PlatformBusy: raise SystemExit(75)'
+            script='from job_agent.browser.platform_lock import platform_lock,PlatformBusy\ntry:\n with platform_lock("boss"): pass\nexcept PlatformBusy: raise SystemExit(75)'
             with platform_lock('boss'):
                 with self.assertRaises(PlatformBusy):
                     with platform_lock('boss'): pass
@@ -44,36 +44,37 @@ class RemainingTests(unittest.TestCase):
         row=report['summary']['boss']
         self.assertEqual(row['cooldown_excluded'],9)
         self.assertTrue(row['zero_reason'])
-        self.assertIn('采到第 4 页，因超时停止',delivery_message(report)[1])
+        self.assertNotIn('采到第',delivery_message(report)[1])
+        self.assertIn('本轮无动作：',delivery_message(report)[1])
 
     def test_mismatch_only_skips_on_positive_readonly_evidence(self):
-        from platforms.boss.apply import BossAdapter
-        from platforms.boss import pages
-        from browser.base import FakeBrowser, FakePage
-        from engine.models import Job
+        from job_agent.platforms.boss.apply import BossAdapter
+        from job_agent.platforms.boss import pages
+        from job_agent.browser.base import FakeBrowser, FakePage
+        from job_agent.engine.models import Job
         adapter=BossAdapter(FakeBrowser(),{})
         adapter.page=FakePage('p1',{'boss.chat_identity':{'job_id':'wrong'}})
         adapter.space=object()
         adapter.job=Job('boss','target','https://www.zhipin.com/job_detail/target.html')
         for evidence,exception in [(True,pages.NotStarted),(False,pages.PlatformStateError)]:
-            with patch('platforms.boss.receipt_reader.read_no_outgoing',return_value=evidence) as read:
+            with patch('job_agent.platforms.boss.receipt_reader.read_no_outgoing',return_value=evidence) as read:
                 with self.assertRaises(exception): adapter._mismatched_chat('mismatch')
                 self.assertEqual(read.call_args_list[0].args[1],'target')
                 if evidence: self.assertEqual(read.call_args_list[1].args[1],'wrong')
         adapter.message_submitted=True
-        with patch('platforms.boss.receipt_reader.read_no_outgoing') as read:
+        with patch('job_agent.platforms.boss.receipt_reader.read_no_outgoing') as read:
             with self.assertRaises(pages.PlatformStateError): adapter._mismatched_chat('mismatch')
             read.assert_not_called()
         adapter.message_submitted=False
         adapter.modal_submitted=True
-        with patch('platforms.boss.receipt_reader.read_no_outgoing') as read:
+        with patch('job_agent.platforms.boss.receipt_reader.read_no_outgoing') as read:
             with self.assertRaises(pages.PlatformStateError): adapter._mismatched_chat('mismatch')
             read.assert_not_called()
 
     def test_readonly_absence_requires_exact_loaded_session_and_no_outgoing(self):
-        from browser.base import FakePage, FakeSpace
-        from platforms.boss import pages
-        from platforms.boss.receipt_reader import read_no_outgoing
+        from job_agent.browser.base import FakePage, FakeSpace
+        from job_agent.platforms.boss import pages
+        from job_agent.platforms.boss.receipt_reader import read_no_outgoing
         for outgoing,ready,expected in [(False,True,True),(True,True,False),(False,False,False)]:
             data={'current_job_id':'target','current_conversation_id':'session','rows':[]}
             if outgoing: data['rows']=[{'id':'1','job_id':'target','conversation_id':'session','direction':'outgoing'}]
@@ -82,16 +83,16 @@ class RemainingTests(unittest.TestCase):
                 'boss.select_session':True,'boss.chat_identity':{'job_id':'target','conversation_id':'session'},
                 'boss.messages':data,'boss.chat_ready':state})
             page.current_url=pages.CHAT_URL
-            with patch('platforms.boss.receipt_reader.time.sleep'):
+            with patch('job_agent.platforms.boss.receipt_reader.time.sleep'):
                 self.assertEqual(read_no_outgoing(FakeSpace('audit',pages=[page]),'target'),expected)
             self.assertTrue(page.closed)
             self.assertFalse(any(a[0] in ('click','fill','press') for a in page.actions))
 
     def test_collection_busy_never_calls_source(self):
-        from browser.base import FakeBrowser
-        from collect.runner import Collector
-        from store import Store
-        from store.collection import CollectionRepository
+        from job_agent.browser.base import FakeBrowser
+        from job_agent.collect.runner import Collector
+        from job_agent.store import Store
+        from job_agent.store.collection import CollectionRepository
         class Source:
             platform='boss'
             def search(self,*args): raise AssertionError('busy platform accessed')

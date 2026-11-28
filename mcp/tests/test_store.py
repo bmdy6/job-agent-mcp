@@ -2,7 +2,7 @@ from pathlib import Path
 import sqlite3
 import tempfile
 import unittest
-from store import Store
+from job_agent.store import Store
 
 class StoreTests(unittest.TestCase):
     def setUp(self):
@@ -13,7 +13,7 @@ class StoreTests(unittest.TestCase):
     def test_api_migration_constraints(self):
         path = self.root/'own.db'
         with Store(path) as db:
-            self.assertEqual(db.schema_version, 6)
+            self.assertEqual(db.schema_version, 7)
             a = db.upsert_job(platform='boss', platform_job_id='1', title='AI')
             self.assertEqual(a, db.upsert_job(platform='boss', platform_job_id='1', title='Engineer'))
             self.assertNotEqual(a, db.upsert_job(platform='liepin', platform_job_id='1'))
@@ -25,7 +25,7 @@ class StoreTests(unittest.TestCase):
             with self.assertRaises(ValueError): db.record_delivery(a, status='replied')
             r = db.add_reply(a, message_id='msg1', direction='inbound', body='hello')
             self.assertEqual(r, db.add_reply(a, message_id='msg1', direction='inbound', body='hello'))
-            with self.assertRaises(sqlite3.IntegrityError): db.record_delivery(999, status='sent')
+            with self.assertRaisesRegex(ValueError, 'Own job not found: 999'): db.record_delivery(999, status='sent')
         with Store(path) as db:
             self.assertEqual(db.get_job(a)['title'], 'Engineer')
             self.assertEqual(len(db.list_jobs()), 2)
